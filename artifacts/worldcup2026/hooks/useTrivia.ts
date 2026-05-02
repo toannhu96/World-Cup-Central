@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useEffect, useState } from "react";
 
-import { getTodayDateStr, getTodayQuestionIndex, TRIVIA_QUESTIONS } from "@/data/trivia";
+import { getTodayDateStr, getTodayQuestion, getTodayQuestionIndex, SHUFFLED_QUESTIONS } from "@/data/trivia";
 
 const STORAGE_KEY = "wc2026_trivia_v1";
 
@@ -42,7 +42,7 @@ export function useTrivia() {
 
   const todayStr = getTodayDateStr();
   const questionIndex = getTodayQuestionIndex();
-  const todayQuestion = TRIVIA_QUESTIONS[questionIndex];
+  const todayQuestion = getTodayQuestion();
   const hasAnsweredToday = state.lastAnsweredDate === todayStr;
   const todayAnswer = state.answers[todayStr] ?? null;
 
@@ -80,6 +80,7 @@ export function useTrivia() {
     loaded,
     todayQuestion,
     questionIndex,
+    totalQuestions: SHUFFLED_QUESTIONS.length,
     hasAnsweredToday,
     todayAnswer,
     streak: state.streak,

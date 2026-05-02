@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 import { useMatches } from "@/hooks/useMatchData";
+import { usePredictions, scorePrediction } from "@/hooks/usePredictions";
+import { PredictModal } from "@/components/PredictModal";
 import { TEAMS, getTimeUntilMatch, type Match } from "@/data/worldcup2026";
 
 export default function MatchDetailScreen() {
@@ -16,10 +18,11 @@ export default function MatchDetailScreen() {
   const insets = useSafeAreaInsets();
   const { isFavoriteMatch, toggleFavoriteMatch } = useApp();
   const { matches, isLoading } = useMatches();
+  const { getPrediction, savePrediction } = usePredictions();
 
   const match: Match | undefined = matches.find((m) => m.id === id);
-
   const [countdown, setCountdown] = useState(match ? getTimeUntilMatch(match) : null);
+  const [showPredict, setShowPredict] = useState(false);
 
   useEffect(() => {
     if (!match || match.status !== "upcoming") return;
@@ -59,139 +62,219 @@ export default function MatchDetailScreen() {
   const isFav = isFavoriteMatch(match.id);
   const isFinished = match.status === "finished";
   const isLive = match.status === "live";
+  const isUpcoming = match.status === "upcoming";
+
+  const prediction = getPrediction(match.id);
+  const predResult = prediction && isFinished ? scorePrediction(prediction, match) : null;
 
   const homeWon = isFinished && match.homeScore !== undefined && match.awayScore !== undefined && match.homeScore > match.awayScore;
   const awayWon = isFinished && match.homeScore !== undefined && match.awayScore !== undefined && match.awayScore > match.homeScore;
   const isDraw = isFinished && match.homeScore === match.awayScore;
 
+  const outcomeColor = predResult
+    ? predResult.outcome === "exact" ? colors.win
+    : predResult.outcome === "correct" ? colors.gold
+    : colors.loss
+    : colors.primary;
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.navy, paddingTop: topPad + 12 }]}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerRound}>{match.round}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              toggleFavoriteMatch(match.id);
-            }}
-          >
-            <Ionicons name={isFav ? "bookmark" : "bookmark-outline"} size={22} color={isFav ? colors.gold : "#fff"} />
-          </TouchableOpacity>
+    <>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: colors.navy, paddingTop: topPad + 12 }]}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.headerRound}>{match.round}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                toggleFavoriteMatch(match.id);
+              }}
+            >
+              <Ionicons name={isFav ? "bookmark" : "bookmark-outline"} size={22} color={isFav ? colors.gold : "#fff"} />
+            </TouchableOpacity>
+          </View>
+
+          {isLive && (
+            <View style={[styles.livePill, { backgroundColor: colors.live }]}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </View>
+          )}
+
+          {/* Score / Teams */}
+          <View style={styles.scoreBlock}>
+            <View style={styles.teamBlock}>
+              <Text style={styles.bigFlag}>{homeTeam?.flag ?? "🏳️"}</Text>
+              <Text style={[styles.teamLong, { color: "#fff" }]}>{homeTeam?.name ?? match.homeTeam}</Text>
+              <Text style={[styles.teamShort, { color: colors.goldLight }]}>{homeTeam?.shortName ?? match.homeTeam}</Text>
+            </View>
+
+            <View style={styles.centerScore}>
+              {isFinished || isLive ? (
+                <>
+                  <Text style={[styles.bigScore, { color: homeWon ? colors.win : awayWon ? colors.foreground : "#fff" }]}>
+                    {match.homeScore ?? 0}
+                  </Text>
+                  <Text style={[styles.scoreSep, { color: "#ffffff60" }]}>–</Text>
+                  <Text style={[styles.bigScore, { color: awayWon ? colors.win : homeWon ? colors.foreground : "#fff" }]}>
+                    {match.awayScore ?? 0}
+                  </Text>
+                  {isDraw && <Text style={[styles.resultLabel, { color: colors.draw }]}>Draw</Text>}
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.matchTime, { color: colors.gold }]}>{match.time}</Text>
+                  <Text style={[styles.matchDate, { color: "#ffffff80" }]}>{match.date}</Text>
+                </>
+              )}
+            </View>
+
+            <View style={[styles.teamBlock, { alignItems: "flex-end" }]}>
+              <Text style={styles.bigFlag}>{awayTeam?.flag ?? "🏳️"}</Text>
+              <Text style={[styles.teamLong, { color: "#fff", textAlign: "right" }]}>{awayTeam?.name ?? match.awayTeam}</Text>
+              <Text style={[styles.teamShort, { color: colors.goldLight }]}>{awayTeam?.shortName ?? match.awayTeam}</Text>
+            </View>
+          </View>
+
+          {/* Countdown */}
+          {countdown && match.status === "upcoming" && (
+            <View style={styles.countdownRow}>
+              {[{ v: countdown.days, l: "Days" }, { v: countdown.hours, l: "Hours" }, { v: countdown.minutes, l: "Min" }, { v: countdown.seconds, l: "Sec" }].map(({ v, l }) => (
+                <View key={l} style={[styles.countdownUnit, { backgroundColor: "#ffffff15", borderRadius: 8 }]}>
+                  <Text style={[styles.countdownValue, { color: colors.gold }]}>{String(v).padStart(2, "0")}</Text>
+                  <Text style={styles.countdownLabel}>{l}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
-        {isLive && (
-          <View style={[styles.livePill, { backgroundColor: colors.live }]}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
-        )}
-
-        {/* Score / Teams */}
-        <View style={styles.scoreBlock}>
-          <View style={styles.teamBlock}>
-            <Text style={styles.bigFlag}>{homeTeam?.flag ?? "🏳️"}</Text>
-            <Text style={[styles.teamLong, { color: "#fff" }]}>{homeTeam?.name ?? match.homeTeam}</Text>
-            <Text style={[styles.teamShort, { color: colors.goldLight }]}>{homeTeam?.shortName ?? match.homeTeam}</Text>
-          </View>
-
-          <View style={styles.centerScore}>
-            {isFinished || isLive ? (
-              <>
-                <Text style={[styles.bigScore, { color: homeWon ? colors.win : awayWon ? colors.foreground : "#fff" }]}>
-                  {match.homeScore ?? 0}
+        <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+          {/* ── Prediction Block ──────────────────────────────── */}
+          {isUpcoming && (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setShowPredict(true);
+              }}
+              style={[styles.predictCard, {
+                backgroundColor: prediction ? `${colors.primary}15` : colors.card,
+                borderColor: prediction ? colors.primary : colors.border,
+                borderRadius: colors.radius,
+              }]}
+            >
+              <View style={[styles.predictIconBox, { backgroundColor: `${colors.primary}20` }]}>
+                <Ionicons name="stats-chart" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.predictText}>
+                <Text style={[styles.predictTitle, { color: colors.foreground }]}>
+                  {prediction ? "Your Prediction" : "Predict the Score"}
                 </Text>
-                <Text style={[styles.scoreSep, { color: "#ffffff60" }]}>–</Text>
-                <Text style={[styles.bigScore, { color: awayWon ? colors.win : homeWon ? colors.foreground : "#fff" }]}>
-                  {match.awayScore ?? 0}
+                <Text style={[styles.predictSub, { color: colors.mutedForeground }]}>
+                  {prediction
+                    ? `${homeTeam?.shortName ?? match.homeTeam} ${prediction.homeScore} – ${prediction.awayScore} ${awayTeam?.shortName ?? match.awayTeam} · Tap to change`
+                    : "3 pts for exact · 1 pt for correct result"}
                 </Text>
-                {isDraw && <Text style={[styles.resultLabel, { color: colors.draw }]}>Draw</Text>}
-              </>
-            ) : (
-              <>
-                <Text style={[styles.matchTime, { color: colors.gold }]}>{match.time}</Text>
-                <Text style={[styles.matchDate, { color: "#ffffff80" }]}>{match.date}</Text>
-              </>
-            )}
-          </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={prediction ? colors.primary : colors.mutedForeground} />
+            </TouchableOpacity>
+          )}
 
-          <View style={[styles.teamBlock, { alignItems: "flex-end" }]}>
-            <Text style={styles.bigFlag}>{awayTeam?.flag ?? "🏳️"}</Text>
-            <Text style={[styles.teamLong, { color: "#fff", textAlign: "right" }]}>{awayTeam?.name ?? match.awayTeam}</Text>
-            <Text style={[styles.teamShort, { color: colors.goldLight }]}>{awayTeam?.shortName ?? match.awayTeam}</Text>
-          </View>
-        </View>
+          {/* ── Prediction Result (finished) ─────────────────── */}
+          {isFinished && prediction && predResult && (
+            <View style={[styles.predResultCard, {
+              backgroundColor: `${outcomeColor}12`,
+              borderColor: `${outcomeColor}40`,
+              borderRadius: colors.radius,
+            }]}>
+              <View style={[styles.predictIconBox, { backgroundColor: `${outcomeColor}20` }]}>
+                <Ionicons
+                  name={predResult.outcome === "exact" ? "trophy" : predResult.outcome === "correct" ? "checkmark-circle" : "close-circle"}
+                  size={22}
+                  color={outcomeColor}
+                />
+              </View>
+              <View style={styles.predictText}>
+                <Text style={[styles.predictTitle, { color: outcomeColor }]}>{predResult.label}</Text>
+                <Text style={[styles.predictSub, { color: colors.mutedForeground }]}>
+                  You predicted {homeTeam?.shortName ?? match.homeTeam} {prediction.homeScore} – {prediction.awayScore} {awayTeam?.shortName ?? match.awayTeam}
+                </Text>
+              </View>
+              <View style={[styles.ptsBadge, { backgroundColor: `${outcomeColor}20` }]}>
+                <Text style={[styles.ptsText, { color: outcomeColor }]}>+{predResult.points}</Text>
+                <Text style={[styles.ptsLabel, { color: outcomeColor }]}>pts</Text>
+              </View>
+            </View>
+          )}
 
-        {/* Countdown */}
-        {countdown && match.status === "upcoming" && (
-          <View style={styles.countdownRow}>
-            {[{ v: countdown.days, l: "Days" }, { v: countdown.hours, l: "Hours" }, { v: countdown.minutes, l: "Min" }, { v: countdown.seconds, l: "Sec" }].map(({ v, l }) => (
-              <View key={l} style={[styles.countdownUnit, { backgroundColor: "#ffffff15", borderRadius: 8 }]}>
-                <Text style={[styles.countdownValue, { color: colors.gold }]}>{String(v).padStart(2, "0")}</Text>
-                <Text style={styles.countdownLabel}>{l}</Text>
+          {/* Match Info */}
+          <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+            {[
+              { icon: "location-outline", label: "Venue", value: match.venue },
+              { icon: "map-outline", label: "City", value: `${match.city}, ${match.country}` },
+              { icon: "calendar-outline", label: "Date", value: match.date },
+              { icon: "time-outline", label: "Kick-off", value: match.time },
+              ...(match.group ? [{ icon: "grid-outline", label: "Group", value: `Group ${match.group}` }] : []),
+            ].map(({ icon, label, value }) => (
+              <View key={label} style={[styles.infoRow, { borderBottomColor: colors.border }]}>
+                <Ionicons name={icon as any} size={18} color={colors.primary} />
+                <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>{label}</Text>
+                <Text style={[styles.infoValue, { color: colors.foreground }]}>{value}</Text>
               </View>
             ))}
           </View>
-        )}
+
+          {/* Result banner */}
+          {isFinished && (
+            <View style={[styles.resultBanner, {
+              backgroundColor: homeWon ? `${colors.win}20` : awayWon ? `${colors.win}20` : `${colors.draw}20`,
+              borderColor: homeWon || awayWon ? colors.win : colors.draw,
+              borderRadius: colors.radius,
+            }]}>
+              <Ionicons name="trophy" size={22} color={homeWon || awayWon ? colors.win : colors.draw} />
+              <Text style={[styles.resultText, { color: homeWon || awayWon ? colors.win : colors.draw }]}>
+                {isDraw ? "Match ended in a draw" : `${homeWon ? homeTeam?.name : awayTeam?.name} won`}
+              </Text>
+            </View>
+          )}
+
+          {/* Teams Info */}
+          {(homeTeam || awayTeam) && (
+            <View style={styles.teamsCompare}>
+              {[homeTeam, awayTeam].filter(Boolean).map((team) => (
+                <View key={team!.id} style={[styles.teamInfoCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+                  <Text style={{ fontSize: 36 }}>{team!.flag}</Text>
+                  <Text style={[styles.teamCardName, { color: colors.foreground }]}>{team!.name}</Text>
+                  {team!.confederation ? (
+                    <Text style={[styles.teamCardConf, { color: colors.primary }]}>{team!.confederation}</Text>
+                  ) : null}
+                  {team!.fifaRanking && team!.fifaRanking < 99 ? (
+                    <View style={[styles.rankRow, { backgroundColor: colors.muted }]}>
+                      <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>FIFA Rank</Text>
+                      <Text style={[styles.rankValue, { color: colors.foreground }]}>#{team!.fifaRanking}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Match Info */}
-        <View style={[styles.infoCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-          {[
-            { icon: "location-outline", label: "Venue", value: match.venue },
-            { icon: "map-outline", label: "City", value: `${match.city}, ${match.country}` },
-            { icon: "calendar-outline", label: "Date", value: match.date },
-            { icon: "time-outline", label: "Kick-off", value: match.time },
-            ...(match.group ? [{ icon: "grid-outline", label: "Group", value: `Group ${match.group}` }] : []),
-          ].map(({ icon, label, value }) => (
-            <View key={label} style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-              <Ionicons name={icon as any} size={18} color={colors.primary} />
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>{label}</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>{value}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Result banner */}
-        {isFinished && (
-          <View style={[styles.resultBanner, {
-            backgroundColor: homeWon ? `${colors.win}20` : awayWon ? `${colors.win}20` : `${colors.draw}20`,
-            borderColor: homeWon || awayWon ? colors.win : colors.draw,
-            borderRadius: colors.radius,
-          }]}>
-            <Ionicons name="trophy" size={22} color={homeWon || awayWon ? colors.win : colors.draw} />
-            <Text style={[styles.resultText, { color: homeWon || awayWon ? colors.win : colors.draw }]}>
-              {isDraw ? "Match ended in a draw" : `${homeWon ? homeTeam?.name : awayTeam?.name} won`}
-            </Text>
-          </View>
-        )}
-
-        {/* Teams Info */}
-        {(homeTeam || awayTeam) && (
-          <View style={styles.teamsCompare}>
-            {[homeTeam, awayTeam].filter(Boolean).map((team) => (
-              <View key={team!.id} style={[styles.teamInfoCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-                <Text style={{ fontSize: 36 }}>{team!.flag}</Text>
-                <Text style={[styles.teamCardName, { color: colors.foreground }]}>{team!.name}</Text>
-                {team!.confederation ? (
-                  <Text style={[styles.teamCardConf, { color: colors.primary }]}>{team!.confederation}</Text>
-                ) : null}
-                {team!.fifaRanking && team!.fifaRanking < 99 ? (
-                  <View style={[styles.rankRow, { backgroundColor: colors.muted }]}>
-                    <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>FIFA Rank</Text>
-                    <Text style={[styles.rankValue, { color: colors.foreground }]}>#{team!.fifaRanking}</Text>
-                  </View>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </View>
+      <PredictModal
+        match={match}
+        visible={showPredict}
+        onClose={() => setShowPredict(false)}
+        onSubmit={(h, a) => {
+          savePrediction(match.id, h, a);
+        }}
+        initialHome={prediction?.homeScore ?? 1}
+        initialAway={prediction?.awayScore ?? 1}
+      />
+    </>
   );
 }
 
@@ -246,9 +329,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 4,
   },
-  bigFlag: {
-    fontSize: 40,
-  },
+  bigFlag: { fontSize: 40 },
   teamLong: {
     fontSize: 13,
     fontWeight: "700" as const,
@@ -286,9 +367,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "800" as const,
   },
-  matchDate: {
-    fontSize: 12,
-  },
+  matchDate: { fontSize: 12 },
   countdownRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -309,6 +388,55 @@ const styles = StyleSheet.create({
     color: "#ffffff60",
     fontSize: 10,
     marginTop: 2,
+  },
+  predictCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    margin: 16,
+    marginBottom: 0,
+    padding: 14,
+    borderWidth: 1,
+  },
+  predResultCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    margin: 16,
+    marginBottom: 0,
+    padding: 14,
+    borderWidth: 1,
+  },
+  predictIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  predictText: { flex: 1 },
+  predictTitle: {
+    fontSize: 15,
+    fontWeight: "700" as const,
+  },
+  predictSub: {
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 17,
+  },
+  ptsBadge: {
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  ptsText: {
+    fontSize: 18,
+    fontWeight: "900" as const,
+  },
+  ptsLabel: {
+    fontSize: 10,
+    fontWeight: "600" as const,
   },
   infoCard: {
     margin: 16,
@@ -374,9 +502,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 6,
   },
-  rankLabel: {
-    fontSize: 10,
-  },
+  rankLabel: { fontSize: 10 },
   rankValue: {
     fontSize: 12,
     fontWeight: "700" as const,

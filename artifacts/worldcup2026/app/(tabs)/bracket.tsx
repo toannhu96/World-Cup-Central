@@ -6,7 +6,7 @@ import { useColors } from "@/hooks/useColors";
 import { useMatches } from "@/hooks/useMatchData";
 import { TEAMS, type Match } from "@/data/worldcup2026";
 
-const ROUNDS = ["Round of 32", "Round of 16", "Quarterfinal", "Semifinal", "Final"];
+const ROUNDS = ["Round of 32", "Round of 16", "Quarterfinal", "Semifinal", "Third Place", "Final"];
 
 function BracketMatch({ match, colors }: { match: Match; colors: ReturnType<typeof useColors> }) {
   const home = TEAMS[match.homeTeam];
