@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
-  FlatList,
   Platform,
   RefreshControl,
   ScrollView,
@@ -17,28 +17,27 @@ import { MatchCard } from "@/components/MatchCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { MATCHES, ROUNDS_ORDER, Match } from "@/data/worldcup2026";
+import { useMatches } from "@/hooks/useMatchData";
+import { ROUNDS_ORDER, type Match } from "@/data/worldcup2026";
 
 const FILTERS = ["All", "Group Stage", "Knockout", "Favorites"] as const;
 type Filter = typeof FILTERS[number];
-
-const ROUNDS_GROUPED = ROUNDS_ORDER.filter((r) => r !== "Group Stage");
 
 export default function ScheduleScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<Filter>("All");
-  const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
-
   const { favoriteMatches } = useApp();
+  const { matches, isLoading, isError, hasLive, lastUpdated, dataSource, refetch } = useMatches();
+  const [refreshing, setRefreshing] = useState(false);
 
   const filteredMatches = useMemo<Match[]>(() => {
-    if (filter === "Group Stage") return MATCHES.filter((m) => m.group);
-    if (filter === "Knockout") return MATCHES.filter((m) => !m.group);
-    if (filter === "Favorites") return MATCHES.filter((m) => favoriteMatches.includes(m.id));
-    return MATCHES;
-  }, [filter, favoriteMatches]);
+    if (filter === "Group Stage") return matches.filter((m) => m.group);
+    if (filter === "Knockout") return matches.filter((m) => !m.group);
+    if (filter === "Favorites") return matches.filter((m) => favoriteMatches.includes(m.id));
+    return matches;
+  }, [filter, favoriteMatches, matches]);
 
   const groupedByRound = useMemo(() => {
     const grouped: Record<string, Match[]> = {};
@@ -56,18 +55,27 @@ export default function ScheduleScreen() {
     }));
   }, [groupedByRound]);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 800);
-  }, []);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
 
-  const headerHeight = Platform.OS === "web" ? 67 : 0;
-  const topPad = Platform.OS === "web" ? headerHeight + 16 : 16;
+  const topPad = Platform.OS === "web" ? 67 + 16 : 0;
+
+  const formatLastUpdated = (iso: string | null) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Animated.ScrollView
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
@@ -76,32 +84,54 @@ export default function ScheduleScreen() {
             tintColor={colors.primary}
           />
         }
-        contentContainerStyle={{ paddingBottom: Platform.OS === "web" ? 34 + 84 : 100 }}
+        contentContainerStyle={{
+          paddingBottom: Platform.OS === "web" ? 34 + 84 : 100,
+        }}
       >
         {/* Hero */}
-        <View
-          style={[
-            styles.hero,
-            {
-              backgroundColor: colors.navy,
-              paddingTop: insets.top + topPad,
-            },
-          ]}
-        >
+        <View style={[styles.hero, { backgroundColor: colors.navy, paddingTop: insets.top + topPad }]}>
           <Text style={styles.heroLabel}>FIFA World Cup</Text>
           <Text style={styles.heroTitle}>2026</Text>
           <Text style={styles.heroSubtitle}>🇺🇸 USA · 🇨🇦 Canada · 🇲🇽 Mexico</Text>
+
           <View style={styles.heroStats}>
             <StatPill label="Teams" value="48" colors={colors} />
             <StatPill label="Matches" value="104" colors={colors} />
             <StatPill label="Venues" value="16" colors={colors} />
             <StatPill label="Days" value="39" colors={colors} />
           </View>
+
+          {/* Live / data status bar */}
+          <View style={styles.statusRow}>
+            {hasLive && (
+              <View style={[styles.livePill, { backgroundColor: colors.live }]}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE NOW</Text>
+              </View>
+            )}
+            {dataSource !== "static" ? (
+              <View style={styles.sourceRow}>
+                <Ionicons name="wifi" size={11} color="#ffffff60" />
+                <Text style={styles.sourceText}>
+                  {dataSource === "cache" ? "cached" : "live"} · {formatLastUpdated(lastUpdated) ?? ""}
+                </Text>
+              </View>
+            ) : isError ? (
+              <View style={styles.sourceRow}>
+                <Ionicons name="cloud-offline-outline" size={11} color="#ffffff60" />
+                <Text style={styles.sourceText}>offline · static data</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
 
         {/* Filter Pills */}
         <View style={[styles.filterRow, { borderBottomColor: colors.border }]}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
             {FILTERS.map((f) => (
               <TouchableOpacity
                 key={f}
@@ -117,7 +147,10 @@ export default function ScheduleScreen() {
                 <Text
                   style={[
                     styles.filterText,
-                    { color: filter === f ? colors.primaryForeground : colors.mutedForeground },
+                    {
+                      color:
+                        filter === f ? colors.primaryForeground : colors.mutedForeground,
+                    },
                   ]}
                 >
                   {f}
@@ -127,19 +160,35 @@ export default function ScheduleScreen() {
           </ScrollView>
         </View>
 
+        {/* Loading state */}
+        {isLoading && (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>
+              Fetching live data…
+            </Text>
+          </View>
+        )}
+
+        {/* Empty favorites */}
         {filter === "Favorites" && filteredMatches.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="bookmark-outline" size={48} color={colors.mutedForeground} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No saved matches</Text>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
+              No saved matches
+            </Text>
             <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
               Tap the bookmark on any match to save it here
             </Text>
           </View>
         ) : (
-          sections.map(({ round, matches }) => (
+          sections.map(({ round, matches: sectionMatches }) => (
             <View key={round}>
-              <SectionHeader title={round} subtitle={`${matches.length} match${matches.length > 1 ? "es" : ""}`} />
-              {matches.map((m) => (
+              <SectionHeader
+                title={round}
+                subtitle={`${sectionMatches.length} match${sectionMatches.length > 1 ? "es" : ""}`}
+              />
+              {sectionMatches.map((m) => (
                 <MatchCard key={m.id} match={m} />
               ))}
             </View>
@@ -150,7 +199,7 @@ export default function ScheduleScreen() {
   );
 }
 
-function StatPill({ label, value, colors }: { label: string; value: string; colors: any }) {
+function StatPill({ label, value, colors }: { label: string; value: string; colors: ReturnType<typeof useColors> }) {
   return (
     <View style={styles.statPill}>
       <Text style={[styles.statValue, { color: colors.gold }]}>{value}</Text>
@@ -163,7 +212,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   hero: {
     paddingHorizontal: 20,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
   heroLabel: {
     color: "#C9A84C80",
@@ -171,6 +220,7 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     letterSpacing: 2,
     textTransform: "uppercase",
+    marginTop: 8,
   },
   heroTitle: {
     color: "#C9A84C",
@@ -187,24 +237,48 @@ const styles = StyleSheet.create({
   },
   heroStats: {
     flexDirection: "row",
-    gap: 12,
+    gap: 16,
+    marginBottom: 12,
   },
-  statPill: {
+  statPill: { alignItems: "center" },
+  statValue: { fontSize: 20, fontWeight: "800" as const },
+  statLabel: { color: "#ffffff80", fontSize: 10, marginTop: 2 },
+  statusRow: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    marginTop: 4,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "800" as const,
+  livePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 5,
   },
-  statLabel: {
-    color: "#ffffff80",
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#fff",
+  },
+  liveText: {
+    color: "#fff",
     fontSize: 10,
-    marginTop: 2,
+    fontWeight: "800" as const,
+    letterSpacing: 0.8,
   },
-  filterRow: {
-    borderBottomWidth: 1,
-    backgroundColor: "transparent",
+  sourceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
   },
+  sourceText: {
+    color: "#ffffff60",
+    fontSize: 11,
+  },
+  filterRow: { borderBottomWidth: 1 },
   filterScroll: {
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -214,24 +288,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
   },
-  filterText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
+  filterText: { fontSize: 13, fontWeight: "600" as const },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
   },
+  loadingText: { fontSize: 13 },
   emptyState: {
     alignItems: "center",
     paddingTop: 60,
     paddingHorizontal: 32,
     gap: 8,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    marginTop: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
+  emptyTitle: { fontSize: 18, fontWeight: "700" as const, marginTop: 8 },
+  emptySubtitle: { fontSize: 14, textAlign: "center", lineHeight: 20 },
 });
