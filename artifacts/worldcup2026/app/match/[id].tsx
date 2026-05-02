@@ -2,20 +2,23 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { MATCHES, TEAMS, getTimeUntilMatch } from "@/data/worldcup2026";
+import { useMatches } from "@/hooks/useMatchData";
+import { TEAMS, getTimeUntilMatch, type Match } from "@/data/worldcup2026";
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { isFavoriteMatch, toggleFavoriteMatch } = useApp();
+  const { matches, isLoading } = useMatches();
 
-  const match = MATCHES.find((m) => m.id === id);
+  const match: Match | undefined = matches.find((m) => m.id === id);
+
   const [countdown, setCountdown] = useState(match ? getTimeUntilMatch(match) : null);
 
   useEffect(() => {
@@ -26,10 +29,27 @@ export default function MatchDetailScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
+  if (isLoading && !match) {
+    return (
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ color: colors.mutedForeground, marginTop: 12, fontSize: 14 }}>
+          Loading match…
+        </Text>
+      </View>
+    );
+  }
+
   if (!match) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.foreground, padding: 20 }}>Match not found</Text>
+      <View style={[styles.container, styles.centered, { backgroundColor: colors.background }]}>
+        <Ionicons name="football-outline" size={48} color={colors.mutedForeground} />
+        <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700", marginTop: 12 }}>
+          Match not found
+        </Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
+          <Text style={{ color: colors.primary, fontSize: 14 }}>Go back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -75,14 +95,18 @@ export default function MatchDetailScreen() {
           <View style={styles.teamBlock}>
             <Text style={styles.bigFlag}>{homeTeam?.flag ?? "🏳️"}</Text>
             <Text style={[styles.teamLong, { color: "#fff" }]}>{homeTeam?.name ?? match.homeTeam}</Text>
-            <Text style={[styles.teamShort, { color: colors.goldLight }]}>{homeTeam?.shortName}</Text>
+            <Text style={[styles.teamShort, { color: colors.goldLight }]}>{homeTeam?.shortName ?? match.homeTeam}</Text>
           </View>
 
           <View style={styles.centerScore}>
             {isFinished || isLive ? (
               <>
-                <Text style={styles.bigScore}>
-                  {match.homeScore ?? 0} – {match.awayScore ?? 0}
+                <Text style={[styles.bigScore, { color: homeWon ? colors.win : awayWon ? colors.foreground : "#fff" }]}>
+                  {match.homeScore ?? 0}
+                </Text>
+                <Text style={[styles.scoreSep, { color: "#ffffff60" }]}>–</Text>
+                <Text style={[styles.bigScore, { color: awayWon ? colors.win : homeWon ? colors.foreground : "#fff" }]}>
+                  {match.awayScore ?? 0}
                 </Text>
                 {isDraw && <Text style={[styles.resultLabel, { color: colors.draw }]}>Draw</Text>}
               </>
@@ -97,7 +121,7 @@ export default function MatchDetailScreen() {
           <View style={[styles.teamBlock, { alignItems: "flex-end" }]}>
             <Text style={styles.bigFlag}>{awayTeam?.flag ?? "🏳️"}</Text>
             <Text style={[styles.teamLong, { color: "#fff", textAlign: "right" }]}>{awayTeam?.name ?? match.awayTeam}</Text>
-            <Text style={[styles.teamShort, { color: colors.goldLight }]}>{awayTeam?.shortName}</Text>
+            <Text style={[styles.teamShort, { color: colors.goldLight }]}>{awayTeam?.shortName ?? match.awayTeam}</Text>
           </View>
         </View>
 
@@ -147,19 +171,25 @@ export default function MatchDetailScreen() {
         )}
 
         {/* Teams Info */}
-        <View style={styles.teamsCompare}>
-          {[homeTeam, awayTeam].filter(Boolean).map((team) => (
-            <View key={team!.id} style={[styles.teamInfoCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-              <Text style={{ fontSize: 36 }}>{team!.flag}</Text>
-              <Text style={[styles.teamCardName, { color: colors.foreground }]}>{team!.name}</Text>
-              <Text style={[styles.teamCardConf, { color: colors.primary }]}>{team!.confederation}</Text>
-              <View style={[styles.rankRow, { backgroundColor: colors.muted }]}>
-                <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>FIFA Rank</Text>
-                <Text style={[styles.rankValue, { color: colors.foreground }]}>#{team!.fifaRanking}</Text>
+        {(homeTeam || awayTeam) && (
+          <View style={styles.teamsCompare}>
+            {[homeTeam, awayTeam].filter(Boolean).map((team) => (
+              <View key={team!.id} style={[styles.teamInfoCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+                <Text style={{ fontSize: 36 }}>{team!.flag}</Text>
+                <Text style={[styles.teamCardName, { color: colors.foreground }]}>{team!.name}</Text>
+                {team!.confederation ? (
+                  <Text style={[styles.teamCardConf, { color: colors.primary }]}>{team!.confederation}</Text>
+                ) : null}
+                {team!.fifaRanking && team!.fifaRanking < 99 ? (
+                  <View style={[styles.rankRow, { backgroundColor: colors.muted }]}>
+                    <Text style={[styles.rankLabel, { color: colors.mutedForeground }]}>FIFA Rank</Text>
+                    <Text style={[styles.rankValue, { color: colors.foreground }]}>#{team!.fifaRanking}</Text>
+                  </View>
+                ) : null}
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -167,6 +197,7 @@ export default function MatchDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  centered: { alignItems: "center", justifyContent: "center" },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -231,15 +262,24 @@ const styles = StyleSheet.create({
   centerScore: {
     alignItems: "center",
     flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    flexWrap: "wrap",
   },
   bigScore: {
-    color: "#fff",
     fontSize: 36,
     fontWeight: "900" as const,
+  },
+  scoreSep: {
+    fontSize: 28,
+    fontWeight: "300" as const,
   },
   resultLabel: {
     fontSize: 12,
     fontWeight: "600" as const,
+    width: "100%",
+    textAlign: "center",
     marginTop: 2,
   },
   matchTime: {

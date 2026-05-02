@@ -3,34 +3,67 @@ import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
-import { MATCHES, TEAMS } from "@/data/worldcup2026";
+import { useMatches } from "@/hooks/useMatchData";
+import { TEAMS, type Match } from "@/data/worldcup2026";
 
 const ROUNDS = ["Round of 32", "Round of 16", "Quarterfinal", "Semifinal", "Final"];
 
-function BracketMatch({ matchId, colors }: { matchId: string; colors: any }) {
-  const match = MATCHES.find((m) => m.id === matchId);
-  if (!match) return null;
+function BracketMatch({ match, colors }: { match: Match; colors: ReturnType<typeof useColors> }) {
   const home = TEAMS[match.homeTeam];
   const away = TEAMS[match.awayTeam];
   const finished = match.status === "finished";
+  const isLive = match.status === "live";
+
+  const isTbd = match.homeTeam === "TBD" || !home;
+  const isTbdAway = match.awayTeam === "TBD" || !away;
+
+  const homeWon = finished && match.homeScore !== undefined && match.awayScore !== undefined && match.homeScore > match.awayScore;
+  const awayWon = finished && match.homeScore !== undefined && match.awayScore !== undefined && match.awayScore > match.homeScore;
 
   return (
-    <View style={[styles.bracketMatch, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius / 2 }]}>
+    <View style={[styles.bracketMatch, {
+      backgroundColor: colors.card,
+      borderColor: isLive ? colors.live : colors.border,
+      borderRadius: colors.radius / 2,
+    }]}>
+      {isLive && (
+        <View style={[styles.liveStrip, { backgroundColor: colors.live }]}>
+          <Text style={styles.liveStripText}>● LIVE</Text>
+        </View>
+      )}
       <View style={[styles.bracketTeam, { borderBottomColor: colors.border }]}>
-        <Text style={{ fontSize: 14 }}>{home?.flag ?? "🏳️"}</Text>
-        <Text style={[styles.bracketTeamName, { color: finished && match.homeScore !== undefined && match.awayScore !== undefined && match.homeScore > match.awayScore ? colors.win : colors.foreground }]} numberOfLines={1}>
-          {home?.shortName ?? match.homeTeam}
+        <Text style={{ fontSize: 14 }}>{isTbd ? "🏳️" : (home?.flag ?? "🏳️")}</Text>
+        <Text
+          style={[styles.bracketTeamName, {
+            color: homeWon ? colors.win : isTbd ? colors.mutedForeground : colors.foreground,
+          }]}
+          numberOfLines={1}
+        >
+          {isTbd ? "TBD" : (home?.shortName ?? match.homeTeam)}
         </Text>
-        {finished && <Text style={[styles.bracketScore, { color: colors.foreground }]}>{match.homeScore}</Text>}
+        {(finished || isLive) && !isTbd && (
+          <Text style={[styles.bracketScore, { color: homeWon ? colors.win : colors.foreground }]}>
+            {match.homeScore ?? 0}
+          </Text>
+        )}
       </View>
       <View style={styles.bracketTeam}>
-        <Text style={{ fontSize: 14 }}>{away?.flag ?? "🏳️"}</Text>
-        <Text style={[styles.bracketTeamName, { color: finished && match.homeScore !== undefined && match.awayScore !== undefined && match.awayScore > match.homeScore ? colors.win : colors.foreground }]} numberOfLines={1}>
-          {away?.shortName ?? match.awayTeam}
+        <Text style={{ fontSize: 14 }}>{isTbdAway ? "🏳️" : (away?.flag ?? "🏳️")}</Text>
+        <Text
+          style={[styles.bracketTeamName, {
+            color: awayWon ? colors.win : isTbdAway ? colors.mutedForeground : colors.foreground,
+          }]}
+          numberOfLines={1}
+        >
+          {isTbdAway ? "TBD" : (away?.shortName ?? match.awayTeam)}
         </Text>
-        {finished && <Text style={[styles.bracketScore, { color: colors.foreground }]}>{match.awayScore}</Text>}
+        {(finished || isLive) && !isTbdAway && (
+          <Text style={[styles.bracketScore, { color: awayWon ? colors.win : colors.foreground }]}>
+            {match.awayScore ?? 0}
+          </Text>
+        )}
       </View>
-      {!finished && (
+      {!finished && !isLive && (
         <View style={[styles.bracketDate, { borderTopColor: colors.border }]}>
           <Text style={[styles.bracketDateText, { color: colors.mutedForeground }]}>{match.date}</Text>
         </View>
@@ -39,8 +72,8 @@ function BracketMatch({ matchId, colors }: { matchId: string; colors: any }) {
   );
 }
 
-function RoundColumn({ round, colors }: { round: string; colors: any }) {
-  const roundMatches = MATCHES.filter((m) => m.round === round);
+function RoundColumn({ round, matches, colors }: { round: string; matches: Match[]; colors: ReturnType<typeof useColors> }) {
+  const roundMatches = matches.filter((m) => m.round === round);
   return (
     <View style={styles.roundColumn}>
       <View style={[styles.roundHeader, { backgroundColor: colors.navy }]}>
@@ -49,7 +82,7 @@ function RoundColumn({ round, colors }: { round: string; colors: any }) {
       </View>
       <ScrollView nestedScrollEnabled contentContainerStyle={{ gap: 8, paddingVertical: 8 }}>
         {roundMatches.map((m) => (
-          <BracketMatch key={m.id} matchId={m.id} colors={colors} />
+          <BracketMatch key={m.id} match={m} colors={colors} />
         ))}
         {roundMatches.length === 0 && (
           <View style={styles.tbdBox}>
@@ -64,6 +97,7 @@ function RoundColumn({ round, colors }: { round: string; colors: any }) {
 export default function BracketScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { matches } = useMatches();
   const topPad = Platform.OS === "web" ? 67 + 16 : insets.top + 16;
 
   return (
@@ -78,7 +112,7 @@ export default function BracketScreen() {
         contentContainerStyle={[styles.bracketScroll, { paddingBottom: Platform.OS === "web" ? 34 + 84 : 100 }]}
       >
         {ROUNDS.map((round) => (
-          <RoundColumn key={round} round={round} colors={colors} />
+          <RoundColumn key={round} round={round} matches={matches} colors={colors} />
         ))}
       </ScrollView>
     </View>
@@ -128,6 +162,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600" as const,
     marginLeft: 4,
+  },
+  liveStrip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignItems: "center",
+  },
+  liveStripText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "800" as const,
+    letterSpacing: 0.5,
   },
   bracketMatch: {
     borderWidth: 1,

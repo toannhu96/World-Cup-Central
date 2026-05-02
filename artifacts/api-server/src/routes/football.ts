@@ -151,6 +151,82 @@ router.get("/schedule", async (req, res) => {
   }
 });
 
+// GET /api/football/groups
+// Derives real group assignments from ESPN schedule using graph approach — cached 10 min
+router.get("/groups", async (req, res) => {
+  const CACHE_KEY = "groups";
+  const cached = cache.get<object>(CACHE_KEY);
+  if (cached) {
+    res.json({ source: "cache", ...cached });
+    return;
+  }
+
+  try {
+    const url = `${ESPN_BASE}/scoreboard?dates=20260611-20260719&limit=200`;
+    const data = await fetchEspn<{ events?: EspnEvent[] }>(url);
+    const events = data.events ?? [];
+
+    // First 72 events are the group stage (12 groups × 6 matches each)
+    const groupStageEvents = events.slice(0, 72);
+    const normalized = groupStageEvents.map(normalizeEvent).filter(Boolean);
+
+    // Build opponent map: team → set of opponents played
+    const opponents: Record<string, Set<string>> = {};
+    for (const ev of normalized) {
+      if (!ev) continue;
+      const h = ev.homeTeam.shortName;
+      const a = ev.awayTeam.shortName;
+      if (!opponents[h]) opponents[h] = new Set();
+      if (!opponents[a]) opponents[a] = new Set();
+      opponents[h].add(a);
+      opponents[a].add(h);
+    }
+
+    // Find groups: each team + its 3 opponents = a group of 4
+    const assigned = new Set<string>();
+    const rawGroups: string[][] = [];
+    for (const team of Object.keys(opponents)) {
+      if (!assigned.has(team)) {
+        const group = [team, ...Array.from(opponents[team])].sort();
+        group.forEach((t) => assigned.add(t));
+        rawGroups.push(group);
+      }
+    }
+
+    // Sort groups by their earliest match index, assign letters A–L
+    const groupOrder = rawGroups.sort((a, b) => {
+      const firstA = normalized.findIndex((ev) => a.includes(ev!.homeTeam.shortName));
+      const firstB = normalized.findIndex((ev) => b.includes(ev!.homeTeam.shortName));
+      return firstA - firstB;
+    });
+
+    const letters = "ABCDEFGHIJKL".split("");
+    const groups = groupOrder.map((teams, i) => ({
+      id: letters[i] ?? String(i + 1),
+      name: `Group ${letters[i] ?? i + 1}`,
+      teams,
+    }));
+
+    // Also return team→group lookup
+    const teamGroup: Record<string, string> = {};
+    for (const g of groups) {
+      for (const t of g.teams) teamGroup[t] = g.id;
+    }
+
+    const payload = {
+      groups,
+      teamGroup,
+      total: groups.length,
+      fetchedAt: new Date().toISOString(),
+    };
+    cache.set(CACHE_KEY, payload, TTL_SCHEDULE);
+    res.json({ source: "live", ...payload });
+  } catch (err) {
+    req.log.error({ err }, "ESPN groups fetch failed");
+    res.status(502).json({ error: "Failed to derive groups", groups: [], teamGroup: {} });
+  }
+});
+
 // GET /api/football/match/:espnId
 // Returns details for a single match — cached 30s
 router.get("/match/:espnId", async (req, res) => {

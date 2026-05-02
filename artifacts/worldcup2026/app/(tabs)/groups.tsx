@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
-import { GROUPS, MATCHES, TEAMS, Team } from "@/data/worldcup2026";
+import { useMatches, useGroups } from "@/hooks/useMatchData";
+import { TEAMS, type Match } from "@/data/worldcup2026";
 
 interface TeamStats {
   teamId: string;
@@ -27,16 +29,20 @@ interface TeamStats {
   points: number;
 }
 
-function computeGroupStandings(groupId: string): TeamStats[] {
-  const group = GROUPS.find((g) => g.id === groupId);
-  if (!group) return [];
-
+function computeStandings(teamIds: string[], allMatches: Match[]): TeamStats[] {
   const stats: Record<string, TeamStats> = {};
-  for (const teamId of group.teams) {
+  for (const teamId of teamIds) {
     stats[teamId] = { teamId, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 };
   }
 
-  const groupMatches = MATCHES.filter((m) => m.group === groupId && m.status === "finished");
+  const teamSet = new Set(teamIds);
+  const groupMatches = allMatches.filter(
+    (m) =>
+      m.status === "finished" &&
+      teamSet.has(m.homeTeam) &&
+      teamSet.has(m.awayTeam)
+  );
+
   for (const m of groupMatches) {
     const home = stats[m.homeTeam];
     const away = stats[m.awayTeam];
@@ -65,46 +71,65 @@ export default function GroupsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { isFavoriteTeam, toggleFavoriteTeam } = useApp();
-  const [selectedGroup, setSelectedGroup] = useState("A");
-
-  const group = GROUPS.find((g) => g.id === selectedGroup);
-  const standings = computeGroupStandings(selectedGroup);
-  const groupMatches = MATCHES.filter((m) => m.group === selectedGroup);
+  const [selectedGroupIdx, setSelectedGroupIdx] = useState(0);
+  const { matches } = useMatches();
+  const { groups, isLoading: groupsLoading } = useGroups();
 
   const topPad = Platform.OS === "web" ? 67 + 16 : insets.top + 16;
+
+  const selectedGroup = groups[selectedGroupIdx];
+  const teamIds = selectedGroup?.teams ?? [];
+
+  const standings = useMemo(
+    () => computeStandings(teamIds, matches),
+    [teamIds, matches]
+  );
+
+  const groupMatches = useMemo(() => {
+    if (!selectedGroup) return [];
+    const teamSet = new Set(teamIds);
+    return matches.filter(
+      (m) => m.round === "Group Stage" && teamSet.has(m.homeTeam) && teamSet.has(m.awayTeam)
+    );
+  }, [matches, teamIds, selectedGroup]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Group Selector */}
       <View style={[styles.groupSelector, { backgroundColor: colors.navy, paddingTop: topPad }]}>
         <Text style={styles.selectorTitle}>Group Stage</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupTabs}>
-          {GROUPS.map((g) => (
-            <TouchableOpacity
-              key={g.id}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setSelectedGroup(g.id);
-              }}
-              style={[
-                styles.groupTab,
-                {
-                  backgroundColor: selectedGroup === g.id ? colors.gold : "transparent",
-                  borderRadius: 8,
-                },
-              ]}
-            >
-              <Text
+
+        {groupsLoading ? (
+          <ActivityIndicator color={colors.gold} style={{ marginVertical: 8 }} />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupTabs}>
+            {groups.map((g, idx) => (
+              <TouchableOpacity
+                key={g.id}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setSelectedGroupIdx(idx);
+                }}
                 style={[
-                  styles.groupTabText,
-                  { color: selectedGroup === g.id ? colors.navy : colors.goldLight },
+                  styles.groupTab,
+                  {
+                    backgroundColor: selectedGroupIdx === idx ? colors.gold : "transparent",
+                    borderRadius: 8,
+                  },
                 ]}
               >
-                {g.id}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <Text
+                  style={[
+                    styles.groupTabText,
+                    { color: selectedGroupIdx === idx ? colors.navy : colors.goldLight },
+                  ]}
+                >
+                  {g.id}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       <ScrollView
@@ -113,100 +138,144 @@ export default function GroupsScreen() {
         }}
       >
         {/* Standings Table */}
-        <View style={[styles.tableCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-          <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.tableHeaderCell, styles.teamCol, { color: colors.mutedForeground }]}>Team</Text>
-            {["P", "W", "D", "L", "GD", "Pts"].map((h) => (
-              <Text key={h} style={[styles.tableHeaderCell, styles.statCol, { color: colors.mutedForeground }]}>{h}</Text>
-            ))}
-            <View style={styles.favCol} />
+        {!selectedGroup ? (
+          <View style={styles.emptyBox}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>Loading groups…</Text>
           </View>
+        ) : (
+          <View style={[styles.tableCard, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+            <View style={[styles.tableHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.tableHeaderCell, styles.teamCol, { color: colors.mutedForeground }]}>Team</Text>
+              {["P", "W", "D", "L", "GD", "Pts"].map((h) => (
+                <Text key={h} style={[styles.tableHeaderCell, styles.statCol, { color: colors.mutedForeground }]}>{h}</Text>
+              ))}
+              <View style={styles.favCol} />
+            </View>
 
-          {standings.map((s, idx) => {
-            const team = TEAMS[s.teamId];
-            const isQualified = idx < 2;
-            const fav = isFavoriteTeam(s.teamId);
-            return (
-              <View
-                key={s.teamId}
-                style={[
-                  styles.tableRow,
-                  {
-                    borderBottomColor: colors.border,
-                    backgroundColor: isQualified ? `${colors.primary}08` : "transparent",
-                  },
-                ]}
-              >
-                <View style={[styles.posIndicator, { backgroundColor: isQualified ? colors.gold : "transparent" }]} />
-                <View style={[styles.teamCol, styles.teamRowCell]}>
-                  <Text style={styles.flagSmall}>{team?.flag}</Text>
-                  <Text style={[styles.teamNameSmall, { color: colors.foreground }]} numberOfLines={1}>
-                    {team?.shortName ?? s.teamId}
-                  </Text>
+            {standings.map((s, idx) => {
+              const team = TEAMS[s.teamId];
+              const isQualified = idx < 2;
+              const fav = isFavoriteTeam(s.teamId);
+              return (
+                <View
+                  key={s.teamId}
+                  style={[
+                    styles.tableRow,
+                    {
+                      borderBottomColor: colors.border,
+                      backgroundColor: isQualified ? `${colors.primary}08` : "transparent",
+                    },
+                  ]}
+                >
+                  <View style={[styles.posIndicator, { backgroundColor: isQualified ? colors.gold : "transparent" }]} />
+                  <View style={[styles.teamCol, styles.teamRowCell]}>
+                    <Text style={styles.flagSmall}>{team?.flag ?? "🏳️"}</Text>
+                    <Text style={[styles.teamNameSmall, { color: colors.foreground }]} numberOfLines={1}>
+                      {team?.shortName ?? s.teamId}
+                    </Text>
+                  </View>
+                  {[s.played, s.won, s.drawn, s.lost, s.gd > 0 ? `+${s.gd}` : s.gd, s.points].map((val, i) => (
+                    <Text
+                      key={i}
+                      style={[
+                        styles.tableCell,
+                        styles.statCol,
+                        {
+                          color: i === 5 ? colors.foreground : colors.mutedForeground,
+                          fontWeight: i === 5 ? ("800" as const) : ("400" as const),
+                        },
+                      ]}
+                    >
+                      {val}
+                    </Text>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.favCol}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      toggleFavoriteTeam(s.teamId);
+                    }}
+                  >
+                    <Ionicons name={fav ? "star" : "star-outline"} size={16} color={fav ? colors.gold : colors.mutedForeground} />
+                  </TouchableOpacity>
                 </View>
-                {[s.played, s.won, s.drawn, s.lost, s.gd > 0 ? `+${s.gd}` : s.gd, s.points].map((val, i) => (
-                  <Text
-                    key={i}
+              );
+            })}
+
+            <View style={styles.qualifiedNote}>
+              <View style={[styles.qualifiedDot, { backgroundColor: colors.gold }]} />
+              <Text style={[styles.qualifiedText, { color: colors.mutedForeground }]}>Qualifies to Round of 32</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Group Matches */}
+        {selectedGroup && (
+          <>
+            <Text style={[styles.sectionLabel, { color: colors.foreground }]}>
+              Matches · Group {selectedGroup.id}
+            </Text>
+
+            {groupMatches.length === 0 ? (
+              <View style={styles.emptyMatches}>
+                <Text style={[styles.emptyMatchText, { color: colors.mutedForeground }]}>
+                  No matches scheduled yet
+                </Text>
+              </View>
+            ) : (
+              groupMatches.map((m) => {
+                const home = TEAMS[m.homeTeam];
+                const away = TEAMS[m.awayTeam];
+                const finished = m.status === "finished";
+                const isLive = m.status === "live";
+                return (
+                  <View
+                    key={m.id}
                     style={[
-                      styles.tableCell,
-                      styles.statCol,
+                      styles.matchRow,
                       {
-                        color: i === 5 ? colors.foreground : colors.mutedForeground,
-                        fontWeight: i === 5 ? ("800" as const) : ("400" as const),
+                        backgroundColor: colors.card,
+                        borderColor: isLive ? colors.live : colors.border,
+                        borderRadius: colors.radius,
                       },
                     ]}
                   >
-                    {val}
-                  </Text>
-                ))}
-                <TouchableOpacity
-                  style={styles.favCol}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    toggleFavoriteTeam(s.teamId);
-                  }}
-                >
-                  <Ionicons name={fav ? "star" : "star-outline"} size={16} color={fav ? colors.gold : colors.mutedForeground} />
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-
-          <View style={styles.qualifiedNote}>
-            <View style={[styles.qualifiedDot, { backgroundColor: colors.gold }]} />
-            <Text style={[styles.qualifiedText, { color: colors.mutedForeground }]}>Qualifies to Round of 32</Text>
-          </View>
-        </View>
-
-        {/* Group Matches */}
-        <Text style={[styles.sectionLabel, { color: colors.foreground }]}>Matches</Text>
-        {groupMatches.map((m) => {
-          const home = TEAMS[m.homeTeam];
-          const away = TEAMS[m.awayTeam];
-          const finished = m.status === "finished";
-          return (
-            <View key={m.id} style={[styles.matchRow, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
-              <View style={styles.matchTeam}>
-                <Text style={{ fontSize: 22 }}>{home?.flag}</Text>
-                <Text style={[styles.matchTeamName, { color: colors.foreground }]}>{home?.shortName}</Text>
-              </View>
-              <View style={styles.matchCenter}>
-                {finished ? (
-                  <Text style={[styles.matchScore, { color: colors.foreground }]}>
-                    {m.homeScore} – {m.awayScore}
-                  </Text>
-                ) : (
-                  <Text style={[styles.matchTime, { color: colors.mutedForeground }]}>{m.time}</Text>
-                )}
-                <Text style={[styles.matchDate, { color: colors.mutedForeground }]}>{m.date}</Text>
-              </View>
-              <View style={[styles.matchTeam, { alignItems: "flex-end" }]}>
-                <Text style={{ fontSize: 22 }}>{away?.flag}</Text>
-                <Text style={[styles.matchTeamName, { color: colors.foreground }]}>{away?.shortName}</Text>
-              </View>
-            </View>
-          );
-        })}
+                    <View style={styles.matchTeam}>
+                      <Text style={{ fontSize: 22 }}>{home?.flag ?? "🏳️"}</Text>
+                      <Text style={[styles.matchTeamName, { color: colors.foreground }]}>
+                        {home?.shortName ?? m.homeTeam}
+                      </Text>
+                    </View>
+                    <View style={styles.matchCenter}>
+                      {finished || isLive ? (
+                        <>
+                          {isLive && (
+                            <View style={[styles.liveTag, { backgroundColor: colors.live }]}>
+                              <Text style={styles.liveTagText}>LIVE</Text>
+                            </View>
+                          )}
+                          <Text style={[styles.matchScore, { color: colors.foreground }]}>
+                            {m.homeScore ?? 0} – {m.awayScore ?? 0}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={[styles.matchTime, { color: colors.mutedForeground }]}>{m.time}</Text>
+                      )}
+                      <Text style={[styles.matchDate, { color: colors.mutedForeground }]}>{m.date}</Text>
+                    </View>
+                    <View style={[styles.matchTeam, { alignItems: "flex-end" }]}>
+                      <Text style={{ fontSize: 22 }}>{away?.flag ?? "🏳️"}</Text>
+                      <Text style={[styles.matchTeamName, { color: colors.foreground }]}>
+                        {away?.shortName ?? m.awayTeam}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -301,9 +370,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
-  qualifiedText: {
-    fontSize: 11,
-  },
+  qualifiedText: { fontSize: 11 },
   sectionLabel: {
     fontSize: 18,
     fontWeight: "700" as const,
@@ -311,6 +378,17 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 10,
   },
+  emptyBox: {
+    alignItems: "center",
+    paddingVertical: 32,
+    gap: 8,
+  },
+  emptyText: { fontSize: 14 },
+  emptyMatches: {
+    paddingVertical: 24,
+    alignItems: "center",
+  },
+  emptyMatchText: { fontSize: 14 },
   matchRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -333,6 +411,18 @@ const styles = StyleSheet.create({
   matchCenter: {
     alignItems: "center",
     flex: 1,
+    gap: 2,
+  },
+  liveTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  liveTagText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "800" as const,
+    letterSpacing: 0.5,
   },
   matchScore: {
     fontSize: 20,

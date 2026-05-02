@@ -7,15 +7,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { MatchCard } from "@/components/MatchCard";
 import { useColors } from "@/hooks/useColors";
-import { MATCHES, TEAMS } from "@/data/worldcup2026";
+import { useMatches } from "@/hooks/useMatchData";
+import { TEAMS } from "@/data/worldcup2026";
 
 export default function FavoritesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { favoriteTeams, favoriteMatches, toggleFavoriteTeam, notificationsEnabled, toggleNotifications } = useApp();
+  const { matches } = useMatches();
   const topPad = Platform.OS === "web" ? 67 + 16 : insets.top + 16;
 
-  const favMatches = MATCHES.filter((m) => favoriteMatches.includes(m.id));
+  const favMatches = matches.filter((m) => favoriteMatches.includes(m.id));
+  const favTeamMatches = matches.filter(
+    (m) => favoriteTeams.includes(m.homeTeam) || favoriteTeams.includes(m.awayTeam)
+  );
   const favTeams = favoriteTeams.map((id) => TEAMS[id]).filter(Boolean);
 
   return (
@@ -81,15 +86,12 @@ export default function FavoritesScreen() {
         )}
 
         {/* Upcoming matches for fav teams */}
-        {favTeams.length > 0 && (
+        {favTeams.length > 0 && favTeamMatches.length > 0 && (
           <>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Next Matches</Text>
-            {MATCHES
-              .filter((m) => favoriteTeams.includes(m.homeTeam) || favoriteTeams.includes(m.awayTeam))
-              .slice(0, 5)
-              .map((m) => (
-                <MatchCard key={m.id} match={m} />
-              ))}
+            {favTeamMatches.slice(0, 5).map((m) => (
+              <MatchCard key={m.id} match={m} />
+            ))}
           </>
         )}
 

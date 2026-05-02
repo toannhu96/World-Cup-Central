@@ -44,6 +44,26 @@ export async function fetchScoreboard(): Promise<ScoreboardResponse> {
   return res.json();
 }
 
+export interface EspnGroup {
+  id: string;
+  name: string;
+  teams: string[]; // ESPN abbreviations
+}
+
+export interface GroupsResponse {
+  source: string;
+  groups: EspnGroup[];
+  teamGroup: Record<string, string>; // abbr → group letter
+  total: number;
+  fetchedAt: string;
+}
+
+export async function fetchGroups(): Promise<GroupsResponse> {
+  const res = await fetch(`${BASE_URL}/api/football/groups`);
+  if (!res.ok) throw new Error(`Groups fetch failed: ${res.status}`);
+  return res.json();
+}
+
 export async function fetchSchedule(
   startDate = "20260611",
   endDate = "20260719"
@@ -74,23 +94,17 @@ const FLAG_MAP: Record<string, string> = {
   MLT: "🇲🇹", AND: "🇦🇩", SMR: "🇸🇲", LIE: "🇱🇮", MON: "🇲🇨",
 };
 
-// Detect round name from ESPN status/round info
-function detectRound(ev: LiveMatch, index: number): string {
-  const r = (ev.round ?? "").toLowerCase();
-  if (r.includes("group") || r.includes("matchday")) return "Group Stage";
-  if (r.includes("round of 32") || r.includes("round of 32")) return "Round of 32";
-  if (r.includes("round of 16")) return "Round of 16";
-  if (r.includes("quarter")) return "Quarterfinal";
-  if (r.includes("semi")) return "Semifinal";
-  if (r.includes("third") || r.includes("3rd")) return "Third Place";
-  if (r.includes("final")) return "Final";
-  // Heuristic: first ~48 matches are group stage for 48-team WC
-  if (index < 48) return "Group Stage";
-  if (index < 64) return "Round of 32";
-  if (index < 72) return "Round of 16";
-  if (index < 76) return "Quarterfinal";
-  if (index < 78) return "Semifinal";
-  if (index === 78) return "Third Place";
+// Detect round name by index position in the ESPN event list.
+// ESPN's `round` field is always null; event `name` is unreliable for 3RD-place team R32 matches
+// (e.g. "Third Place Group A/B/C/D/F at Group E Winner" is an R32 match, NOT the 3rd-place playoff).
+// 2026 WC structure: 72 GS | 16 R32 | 8 R16 | 4 QF | 2 SF | 1 3P | 1 F = 104 total
+function detectRound(_ev: LiveMatch, index: number): string {
+  if (index < 72) return "Group Stage";
+  if (index < 88) return "Round of 32";
+  if (index < 96) return "Round of 16";
+  if (index < 100) return "Quarterfinal";
+  if (index < 102) return "Semifinal";
+  if (index === 102) return "Third Place";
   return "Final";
 }
 
@@ -107,27 +121,23 @@ function parseDate(isoDate: string): { date: string; time: string } {
 }
 
 // Convert ESPN LiveMatch events → our Match format
-export function espnEventsToMatches(events: LiveMatch[]): Match[] {
+// Pass teamGroup map (abbr → group letter) for group assignment
+export function espnEventsToMatches(
+  events: LiveMatch[],
+  teamGroup: Record<string, string> = {}
+): Match[] {
   return events.map((ev, idx): Match => {
     const homeAbbr = ev.homeTeam.shortName.toUpperCase();
     const awayAbbr = ev.awayTeam.shortName.toUpperCase();
     const { date, time } = parseDate(ev.date);
 
-    // Try to find existing static match for extra metadata (group, venue detail)
-    const staticMatch = MATCHES.find((m) => {
-      const ht = TEAMS[m.homeTeam];
-      const at = TEAMS[m.awayTeam];
-      return (
-        ht?.shortName.toUpperCase() === homeAbbr &&
-        at?.shortName.toUpperCase() === awayAbbr
-      );
-    });
-
     const round = detectRound(ev, idx);
     const isGroup = round === "Group Stage";
 
-    // Determine group letter from static match if available
-    const group = staticMatch?.group ?? (isGroup ? undefined : undefined);
+    // Group letter from ESPN-derived teamGroup map first, then static match fallback
+    const group: string | undefined = isGroup
+      ? (teamGroup[homeAbbr] ?? teamGroup[awayAbbr] ?? undefined)
+      : undefined;
 
     // Country from city/country field
     const country: "USA" | "CAN" | "MEX" = ev.country?.toLowerCase().includes("canada")
@@ -137,20 +147,19 @@ export function espnEventsToMatches(events: LiveMatch[]): Match[] {
       : "USA";
 
     return {
-      id: staticMatch?.id ?? `espn-${ev.espnId}`,
+      id: `espn-${ev.espnId}`,
       group,
       round,
       homeTeam: homeAbbr,
       awayTeam: awayAbbr,
       date,
       time,
-      venue: ev.venue ?? staticMatch?.venue ?? "TBD",
-      city: ev.city ?? staticMatch?.city ?? "",
+      venue: ev.venue ?? "TBD",
+      city: ev.city ?? "",
       country,
       homeScore: ev.homeScore ?? undefined,
       awayScore: ev.awayScore ?? undefined,
       status: ev.status,
-      matchDay: staticMatch?.matchDay,
     };
   });
 }
