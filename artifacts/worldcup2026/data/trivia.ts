@@ -588,17 +588,18 @@ export const TRIVIA_QUESTIONS: TriviaQuestion[] = [
 ];
 
 // ── Seeded Fisher-Yates shuffle ───────────────────────────────────────
-// A fixed seed ensures every user sees the same randomized order,
-// but the questions appear in a non-obvious sequence across 39+ days.
+// Uses a simple LCG (linear congruential generator) — universally supported.
+// Fixed seed ensures every user sees the same shuffled order.
 function seededShuffle<T>(arr: T[], seed: number): T[] {
   const result = [...arr];
   let s = seed >>> 0;
+  const next = () => {
+    // LCG constants from Numerical Recipes
+    s = ((s * 1664525 + 1013904223) >>> 0);
+    return s / 0x100000000;
+  };
   for (let i = result.length - 1; i > 0; i--) {
-    // LCG: produces a deterministic but well-distributed sequence
-    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
-    s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
-    s = (s ^ (s >>> 16)) >>> 0;
-    const j = s % (i + 1);
+    const j = Math.floor(next() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
