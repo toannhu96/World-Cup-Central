@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "World Cup 2026"
+version = "1.0.0"
+id = "artifacts/worldcup2026"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 24315
+
+[services.development]
+run = "pnpm --filter @workspace/worldcup2026 run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/worldcup2026", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/worldcup2026", "run", "serve" ]
+
+[services.env]
+PORT = "24315"
+BASE_PATH = "/"

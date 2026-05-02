@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "FIbui-u-OpufPsUsMB0Vf"
+uri = "file://artifacts/worldcup2026/assets/images/icon.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "4mmZAaj1XIv_UuOzkvLQb"
+uri = "file://artifacts/worldcup2026/assets/images/hero_banner.png"
+type = "image"
+title = "generated_image"
