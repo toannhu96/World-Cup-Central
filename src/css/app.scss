@@ -1,0 +1,48 @@
+:root {
+  --primary-gold: #ffae00;
+  --primary-blue: #008cff;
+  --primary-pink: #ff0077;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.3);
+}
+
+body {
+  background: url('../static/bg.svg') no-repeat center center fixed;
+  background-size: cover;
+  min-height: 100vh;
+}
+
+.zaui-page {
+  background: transparent !important;
+}
+
+.glass-morphism {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-morphism-dark {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.page {
+  padding: 16px 16px 96px 16px;
+}
+
+.section-container {
+  padding: 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  border: 1px solid var(--glass-border);
+}
+
+.zaui-list-item {
+  cursor: pointer;
+}
