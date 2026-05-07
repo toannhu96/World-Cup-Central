@@ -5,6 +5,9 @@ import "./css/tailwind.scss";
 // Your stylesheet
 import "./css/app.scss";
 
+// i18n
+import "./i18n";
+
 // React core
 import React from "react";
 import { createRoot } from "react-dom/client";

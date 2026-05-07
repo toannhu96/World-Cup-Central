@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "zmp-ui";
+import { useTranslation } from "react-i18next";
 
 interface GroupFilterBarProps {
   selectedGroup: string;
@@ -7,6 +8,7 @@ interface GroupFilterBarProps {
 }
 
 export const GroupFilterBar: React.FC<GroupFilterBarProps> = ({ selectedGroup, onSelectGroup }) => {
+  const { t } = useTranslation();
   const groups = ["All", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
   return (
@@ -23,7 +25,7 @@ export const GroupFilterBar: React.FC<GroupFilterBarProps> = ({ selectedGroup, o
             }`}
           >
             <Text size="xSmall" className="font-bold uppercase tracking-widest">
-              {g === "All" ? "All Groups" : `Group ${g}`}
+              {g === "All" ? t('common.all_groups') : t('common.group_name', { name: g })}
             </Text>
           </Box>
         ))}

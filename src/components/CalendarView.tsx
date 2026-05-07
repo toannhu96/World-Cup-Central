@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, Icon } from "zmp-ui";
-import { Match, formatMatchDate } from "@/constants/worldcup2026";
+import { Match } from "@/constants/worldcup2026";
+import { useTranslation } from "react-i18next";
 
 interface CalendarViewProps {
   matches: Match[];
@@ -10,6 +11,7 @@ interface CalendarViewProps {
 
 export const CalendarView: React.FC<CalendarViewProps> = ({ matches, selectedDate, onSelectDate }) => {
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
+  const { t, i18n } = useTranslation();
 
   // Get all unique dates from matches
   const matchDates = useMemo(() => {
@@ -33,6 +35,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ matches, selectedDat
 
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
 
+  const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return t('common.select_date');
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', { 
+      weekday: "short", 
+      month: "short", 
+      day: "numeric" 
+    });
+  };
+
   const renderWeekStrip = () => (
     <Box className="px-4 mb-6">
       <Box flex className="gap-3 overflow-x-auto pb-4 scrollbar-hide">
@@ -40,7 +52,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ matches, selectedDat
           const isSelected = selectedDate === date;
           const isPast = date < todayStr;
           const d = new Date(date);
-          const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+          const dayName = d.toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US', { weekday: "short" });
           const dayNum = d.getDate();
           const matchCount = matchesByDate[date]?.length || 0;
 
@@ -68,10 +80,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ matches, selectedDat
     </Box>
   );
 
+  const dayLabels = i18n.language === 'vi' 
+    ? ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
+    : ["S", "M", "T", "W", "T", "F", "S"];
+
   const renderMonthView = () => (
     <Box className="px-4 mb-6 bg-white p-4 rounded-3xl border border-gray-100">
       <Box className="grid grid-cols-7 gap-2">
-        {["S", "M", "T", "W", "T", "F", "S"].map(d => (
+        {dayLabels.map(d => (
           <Box key={d} className="text-center py-2">
             <Text size="xxxSmall" className="font-bold text-gray-300">{d}</Text>
           </Box>
@@ -123,7 +139,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ matches, selectedDat
     <Box>
       <Box flex justifyContent="space-between" alignItems="center" className="px-6 mb-4">
         <Text size="small" className="font-black text-gray-400 uppercase tracking-widest">
-          {selectedDate ? formatMatchDate(selectedDate) : "Select Date"}
+          {formatDisplayDate(selectedDate)}
         </Text>
         <Box 
           onClick={() => setViewMode(prev => prev === "week" ? "month" : "week")}

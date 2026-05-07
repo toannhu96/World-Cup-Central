@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Box, Text, Icon } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
@@ -15,6 +16,7 @@ interface MatchCardProps {
 
 function CountdownTimer({ match }: { match: Match }) {
   const [countdown, setCountdown] = useState(getTimeUntilMatch(match));
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -28,14 +30,14 @@ function CountdownTimer({ match }: { match: Match }) {
   if (countdown.days > 7) {
     return (
       <Text size="xxxSmall" className="text-gray-400">
-        {countdown.days}d away
+        {t('common.days_away', { count: countdown.days })}
       </Text>
     );
   }
 
   return (
     <Text size="xxxSmall" style={{ color: "#FFD700" }}>
-      {countdown.days > 0 ? `${countdown.days}d ` : ""}
+      {countdown.days > 0 ? `${t('common.days_away', { count: countdown.days })} ` : ""}
       {String(countdown.hours).padStart(2, "0")}:{String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
     </Text>
   );
@@ -43,6 +45,7 @@ function CountdownTimer({ match }: { match: Match }) {
 
 export function MatchCard({ match, compact = false }: MatchCardProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { getPrediction, savePrediction } = usePredictions();
   const [showPredict, setShowPredict] = useState(false);
 
@@ -78,6 +81,16 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
       : "#F44336"
     : "#007AFF";
 
+  const ROUND_KEYS: Record<string, string> = {
+    "Group Stage": "round_group_stage",
+    "Round of 32": "round_of_32",
+    "Round of 16": "round_of_16",
+    "Quarterfinal": "round_quarterfinal",
+    "Semifinal": "round_semifinal",
+    "Third Place": "round_third_place",
+    "Final": "round_final"
+  };
+
   return (
     <>
       <Box
@@ -86,13 +99,15 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
       >
         {isLive && (
           <Box className="absolute top-2.5 left-3.5 px-1.5 py-0.5 bg-red-500 rounded text-white uppercase text-[9px] font-extrabold tracking-wider">
-            LIVE
+            {t('common.live')}
           </Box>
         )}
 
         <Box flex justifyContent="space-between" alignItems="flex-start" className="mb-3">
           <Box>
-            <Text className="text-[11px] font-black uppercase tracking-[0.15em] text-blue-600/70">{match.round}</Text>
+            <Text className="text-[11px] font-black uppercase tracking-[0.15em] text-blue-600/70">
+              {t(`common.${ROUND_KEYS[match.round]}`)}
+            </Text>
             <Text className="text-[11px] text-gray-500 font-medium">{match.city} · {match.date}</Text>
           </Box>
         </Box>
@@ -134,7 +149,7 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
 
         {match.group && (
           <Box className="mx-auto mb-2 px-2.5 py-0.5 bg-gray-100 rounded-full">
-            <Text className="text-[11px] font-semibold text-gray-500">Group {match.group}</Text>
+            <Text className="text-[11px] font-semibold text-gray-500">{t('common.group', { group: match.group })}</Text>
           </Box>
         )}
 
@@ -149,8 +164,8 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
             <Icon icon="zi-edit" size={14} className={prediction ? "text-blue-500" : "text-gray-400"} />
             <Text size="xSmall" className={`flex-1 font-medium ${prediction ? "text-blue-500" : "text-gray-400"}`}>
               {prediction
-                ? `Your pick: ${prediction.homeScore}–${prediction.awayScore} · Tap to change`
-                : "Predict the score"}
+                ? t('common.your_pick', { homeScore: prediction.homeScore, awayScore: prediction.awayScore })
+                : t('common.predict_score')}
             </Text>
             <Icon icon="zi-chevron-right" size={12} className={prediction ? "text-blue-500" : "text-gray-400"} />
           </Box>
@@ -164,10 +179,10 @@ export function MatchCard({ match, compact = false }: MatchCardProps) {
             style={{ backgroundColor: `${outcomeColor}12` }}
           >
             <Text size="xSmall" className="font-bold mr-1" style={{ color: outcomeColor }}>
-              {predResult.label}
+              {t(predResult.label)}
             </Text>
             <Text className="text-[11px] flex-1 text-gray-500">
-              You predicted {prediction.homeScore}–{prediction.awayScore} · +{predResult.points} pts
+              {t('common.you_predicted', { homeScore: prediction.homeScore, awayScore: prediction.awayScore, points: predResult.points })}
             </Text>
           </Box>
         )}

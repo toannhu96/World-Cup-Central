@@ -11,6 +11,7 @@ import { AppProvider } from "../context/AppContext";
 import { RecoilRoot } from "recoil";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React, { Suspense } from "react";
+import { useTranslation } from "react-i18next";
 
 import HomePage from "@/pages/index";
 import MatchDetailPage from "@/pages/match-detail";
@@ -24,6 +25,7 @@ const AppCheckIn = () => {
 };
 
 const Layout = () => {
+  const { t } = useTranslation();
   return (
     <RecoilRoot>
       <AppProvider>
@@ -32,7 +34,7 @@ const Layout = () => {
           <AppCheckIn />
           <SnackbarProvider>
             <ZMPRouter>
-              <Suspense fallback={<div>Loading...</div>}>
+              <Suspense fallback={<div>{t('common.loading')}</div>}>
                 <AnimationRoutes>
                   <Route path="/" element={<HomePage />}></Route>
                   <Route path="/match/:id" element={<MatchDetailPage />}></Route>

@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text, Icon } from "zmp-ui";
 import { MatchEvent } from "@/types";
+import { useTranslation } from "react-i18next";
 
 interface KeyEventsProps {
   events: MatchEvent[];
@@ -9,11 +10,12 @@ interface KeyEventsProps {
 }
 
 export const KeyEvents: React.FC<KeyEventsProps> = ({ events, homeTeam, awayTeam }) => {
+  const { t } = useTranslation();
   if (!events || events.length === 0) {
     return (
       <Box className="py-20 px-10 text-center">
         <Icon icon="zi-info" size={48} className="text-gray-200 mb-4" />
-        <Text className="text-gray-400">No match events recorded yet.</Text>
+        <Text className="text-gray-400">{t('common.no_events')}</Text>
       </Box>
     );
   }
@@ -43,7 +45,7 @@ export const KeyEvents: React.FC<KeyEventsProps> = ({ events, homeTeam, awayTeam
                 {isHome && (
                   <Box className="text-right">
                     <Text size="small" className="font-bold block">{event.player}</Text>
-                    {event.assistedBy && <Text size="xxxSmall" className="text-gray-400">assist: {event.assistedBy}</Text>}
+                    {event.assistedBy && <Text size="xxxSmall" className="text-gray-400">{t('common.assist', { player: event.assistedBy })}</Text>}
                     {event.detail && <Text size="xxxSmall" className="text-gray-400">{event.detail}</Text>}
                   </Box>
                 )}
@@ -60,7 +62,7 @@ export const KeyEvents: React.FC<KeyEventsProps> = ({ events, homeTeam, awayTeam
                 {!isHome && (
                   <Box className="text-left">
                     <Text size="small" className="font-bold block">{event.player}</Text>
-                    {event.assistedBy && <Text size="xxxSmall" className="text-gray-400">assist: {event.assistedBy}</Text>}
+                    {event.assistedBy && <Text size="xxxSmall" className="text-gray-400">{t('common.assist', { player: event.assistedBy })}</Text>}
                     {event.detail && <Text size="xxxSmall" className="text-gray-400">{event.detail}</Text>}
                   </Box>
                 )}

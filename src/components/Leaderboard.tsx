@@ -2,9 +2,11 @@ import React from "react";
 import { Box, Text, Icon, Avatar, Spinner } from "zmp-ui";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { TriviaCard } from "./TriviaCard";
+import { useTranslation } from "react-i18next";
 
 export function Leaderboard() {
   const { topUsers, currentUser, loading } = useLeaderboard();
+  const { t } = useTranslation();
 
   return (
     <Box className="pb-8">
@@ -18,9 +20,9 @@ export function Leaderboard() {
         <Box className="p-4 bg-navy-900 flex flex-row items-center justify-between" style={{ backgroundColor: '#001f3f' }}>
           <Box flex alignItems="center" className="gap-2">
             <Icon icon="zi-star-solid" className="text-yellow-500" size={24} />
-            <Text className="font-bold text-white">Global Leaderboard</Text>
+            <Text className="font-bold text-white">{t('common.leaderboard')}</Text>
           </Box>
-          <Text size="xxxSmall" className="text-white/40 uppercase font-bold tracking-widest">Top 10</Text>
+          <Text size="xxxSmall" className="text-white/40 uppercase font-bold tracking-widest">{t('common.top_10')}</Text>
         </Box>
         
         <Box className="flex flex-col">
@@ -30,7 +32,7 @@ export function Leaderboard() {
             </Box>
           ) : topUsers.length === 0 ? (
             <Box className="py-10 text-center">
-              <Text className="text-gray-400">No data yet</Text>
+              <Text className="text-gray-400">{t('common.no_data_yet')}</Text>
             </Box>
           ) : (
             topUsers.map((entry, index) => (
@@ -53,12 +55,12 @@ export function Leaderboard() {
                   </Box>
                   <Avatar src={entry.avatar || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + entry.id} size={32} />
                   <Text className={`font-semibold ${entry.id === currentUser?.id ? "text-blue-700" : "text-gray-700"}`}>
-                    {entry.name} {entry.id === currentUser?.id && "(You)"}
+                    {entry.name} {entry.id === currentUser?.id && `(${t('common.you')})`}
                   </Text>
                 </Box>
                 <Box className="text-right">
                   <Text className="font-bold text-blue-600">{entry.total_points.toLocaleString()}</Text>
-                  <Text size="xxxSmall" className="text-gray-400 uppercase font-bold">pts</Text>
+                  <Text size="xxxSmall" className="text-gray-400 uppercase font-bold">{t('common.pts')}</Text>
                 </Box>
               </Box>
             ))
@@ -73,17 +75,17 @@ export function Leaderboard() {
                 <Text size="small" className="text-gray-400 font-bold">?</Text>
               </Box>
               <Avatar src={currentUser.avatar} size={32} />
-              <Text className="font-bold text-blue-700">{currentUser.name} (You)</Text>
+              <Text className="font-bold text-blue-700">{currentUser.name} ({t('common.you')})</Text>
             </Box>
             <Box className="text-right">
               <Text className="font-bold text-blue-600">{currentUser.total_points.toLocaleString()}</Text>
-              <Text size="xxxSmall" className="text-gray-400 uppercase font-bold">pts</Text>
+              <Text size="xxxSmall" className="text-gray-400 uppercase font-bold">{t('common.pts')}</Text>
             </Box>
           </Box>
         )}
         
         <Box className="p-3 bg-gray-50/50 text-center">
-          <Text size="xxxSmall" className="text-gray-400 italic">Participate in daily activities to climb the ranks!</Text>
+          <Text size="xxxSmall" className="text-gray-400 italic">{t('common.leaderboard_hint')}</Text>
         </Box>
       </Box>
     </Box>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text, Button, Page } from "zmp-ui";
+import { useTranslation } from "react-i18next";
 
 export type ErrorFallbackProps = {
   error: Error;
@@ -7,6 +8,7 @@ export type ErrorFallbackProps = {
 };
 
 export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
+  const { t } = useTranslation();
   const handleRestart = () => {
     window.location.reload();
   };
@@ -22,7 +24,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   return (
     <Page className="flex items-center justify-center p-6 bg-white min-h-screen">
       <Box flex flexDirection="column" alignItems="center" className="w-full max-w-md text-center">
-        <Box className="mb-6 p-4 bg-red-50 rounded-full">
+        <Box className="mb-6 p-4 bg-red-0 rounded-full">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="48"
@@ -41,11 +43,11 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </Box>
         
         <Text size="xLarge" className="font-bold text-gray-900 mb-2">
-          Something went wrong
+          {t('common.something_went_wrong')}
         </Text>
         
         <Text size="small" className="text-gray-500 mb-8">
-          The application encountered an unexpected error. Please reload to continue.
+          {t('common.error_desc')}
         </Text>
 
         <Box className="w-full space-y-3">
@@ -54,7 +56,7 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             onClick={handleRestart}
             variant="primary"
           >
-            Try Again
+            {t('common.try_again')}
           </Button>
           
           <Button
@@ -66,13 +68,13 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
             }}
             variant="secondary"
           >
-            View Details
+            {t('common.view_details')}
           </Button>
         </Box>
 
         <Box className="mt-10 pt-6 border-t border-gray-100 w-full">
           <Text size="xxxSmall" className="text-gray-400">
-            If the problem persists, please contact support.
+            {t('common.contact_support_hint')}
           </Text>
         </Box>
       </Box>

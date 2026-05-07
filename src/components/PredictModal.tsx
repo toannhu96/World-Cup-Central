@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Modal, Box, Text, Button, Icon } from "zmp-ui";
 import { Match, TEAMS } from "@/constants/worldcup2026";
 import { trackEvent } from "../utils/analytics";
+import { useTranslation } from "react-i18next";
 
 interface PredictModalProps {
   match: Match;
@@ -22,6 +23,7 @@ export function PredictModal({
 }: PredictModalProps) {
   const [homeScore, setHomeScore] = useState(initialHome);
   const [awayScore, setAwayScore] = useState(initialAway);
+  const { t } = useTranslation();
 
   const homeTeam = TEAMS[match.homeTeam];
   const awayTeam = TEAMS[match.awayTeam];
@@ -36,8 +38,8 @@ export function PredictModal({
     <Modal
       visible={visible}
       onClose={onClose}
-      title="Predict Score"
-      description="What's your prediction for this match?"
+      title={t('common.predict_score')}
+      description={t('common.predict_desc')}
     >
       <Box className="p-4">
         <Box flex alignItems="center" justifyContent="space-between" className="mb-8">
@@ -98,10 +100,10 @@ export function PredictModal({
 
         <Box flex className="gap-3 mt-6">
           <Button fullWidth variant="secondary" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button fullWidth onClick={handleSumbit}>
-            Save Prediction
+            {t('common.save_prediction')}
           </Button>
         </Box>
       </Box>

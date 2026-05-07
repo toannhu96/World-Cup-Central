@@ -1,49 +1,55 @@
 import React from "react";
-import { Box, Text, Icon, Switch, List, Spinner } from "zmp-ui";
+import { Box, Text, Icon, Switch, List, Spinner, Button } from "zmp-ui";
 import { useNotificationSettings, NotificationSettings } from "../hooks/useNotificationSettings";
 import { useRecoilValue } from "recoil";
 import { userState } from "../state";
+import { useTranslation } from "react-i18next";
 
 export function SettingsPage() {
   const user = useRecoilValue(userState);
   const { settings, loading, updateSetting } = useNotificationSettings();
+  const { t, i18n } = useTranslation();
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
 
   const settingItems: { key: keyof NotificationSettings; label: string; icon: string; description: string }[] = [
     { 
       key: "alert_match_today", 
-      label: "Match Today", 
+      label: t('common.alert_match_today_label'), 
       icon: "zi-calendar", 
-      description: "Get a daily digest of matches happening today" 
+      description: t('common.alert_match_today_desc') 
     },
     { 
       key: "alert_match_1h_before", 
-      label: "1 Hour Reminder", 
+      label: t('common.alert_match_1h_before_label'), 
       icon: "zi-clock-1", 
-      description: "Alert before a match starts" 
+      description: t('common.alert_match_1h_before_desc') 
     },
     { 
       key: "alert_match_result", 
-      label: "Match Results", 
+      label: t('common.alert_match_result_label'), 
       icon: "zi-note", 
-      description: "Notification when a match ends" 
+      description: t('common.alert_match_result_desc') 
     },
     { 
       key: "alert_your_prediction_result", 
-      label: "Prediction Performance", 
+      label: t('common.alert_your_prediction_result_label'), 
       icon: "zi-star", 
-      description: "Alert when your prediction is scored" 
+      description: t('common.alert_your_prediction_result_desc') 
     },
     { 
       key: "alert_goals", 
-      label: "Goal Alerts", 
+      label: t('common.alert_goals_label'), 
       icon: "zi-check-circle", 
-      description: "Real-time notifications for goals" 
+      description: t('common.alert_goals_desc') 
     },
     { 
       key: "alert_group_stage_complete", 
-      label: "Tournament Milestones", 
+      label: t('common.alert_group_stage_complete_label'), 
       icon: "zi-flag", 
-      description: "Alert when group stages or rounds complete" 
+      description: t('common.alert_group_stage_complete_desc') 
     },
   ];
 
@@ -51,20 +57,56 @@ export function SettingsPage() {
     return (
       <Box className="m-4 p-10 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
         <Icon icon="zi-user" size={48} className="text-gray-200 mb-4" />
-        <Text className="text-gray-600 font-bold mb-1">Guest Mode</Text>
-        <Text size="small" className="text-gray-400">Please log in to manage your notification settings.</Text>
+        <Text className="text-gray-600 font-bold mb-1">{t('common.guest_mode')}</Text>
+        <Text size="small" className="text-gray-400">{t('common.guest_mode_hint')}</Text>
       </Box>
     );
   }
 
   return (
     <Box className="m-4 flex flex-col gap-4">
+      {/* Language Switcher */}
+      <Box className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+        <Box flex alignItems="center" className="gap-3 mb-6">
+          <Icon icon="zi-Chat" className="text-blue-600" size={24} />
+          <Box>
+            <Text className="font-bold text-gray-800">{t('common.language')}</Text>
+            <Text size="xxxSmall" className="text-gray-400">🇻🇳 {t('common.vietnamese')} / 🇺🇸 {t('common.english')}</Text>
+          </Box>
+        </Box>
+        <Box flex className="gap-2">
+          <Button 
+            size="small" 
+            variant={i18n.language === 'vi' ? 'primary' : 'secondary'}
+            onClick={() => changeLanguage('vi')}
+            className="flex-1"
+          >
+            <Box flex alignItems="center" justifyContent="center" className="gap-2">
+              <Text>🇻🇳</Text>
+              <Text className="font-bold">{t('common.vietnamese')}</Text>
+            </Box>
+          </Button>
+          <Button 
+            size="small" 
+            variant={i18n.language === 'en' ? 'primary' : 'secondary'}
+            onClick={() => changeLanguage('en')}
+            className="flex-1"
+          >
+            <Box flex alignItems="center" justifyContent="center" className="gap-2">
+              <Text>🇺🇸</Text>
+              <Text className="font-bold">{t('common.english')}</Text>
+            </Box>
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Notification Preferences */}
       <Box className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
         <Box flex alignItems="center" className="gap-3 mb-6">
           <Icon icon="zi-notif-ring" className="text-blue-600" size={24} />
           <Box>
-            <Text className="font-bold text-gray-800">Notification Preferences</Text>
-            <Text size="xxxSmall" className="text-gray-400">Choose which events you want to be alerted about</Text>
+            <Text className="font-bold text-gray-800">{t('common.notification_preferences')}</Text>
+            <Text size="xxxSmall" className="text-gray-400">{t('common.notification_hint')}</Text>
           </Box>
         </Box>
 
@@ -96,11 +138,11 @@ export function SettingsPage() {
       </Box>
 
       <Box className="p-4 bg-navy-900 rounded-2xl text-white shadow-lg" style={{ backgroundColor: '#001f3f' }}>
-        <Text className="font-bold mb-1">Zalo Notification API</Text>
-        <Text size="xxxSmall" className="text-white/60 mb-4">Actual delivery depends on your Zalo permission settings.</Text>
+        <Text className="font-bold mb-1">{t('common.zalo_notif_api')}</Text>
+        <Text size="xxxSmall" className="text-white/60 mb-4">{t('common.zalo_notif_hint')}</Text>
         <Box className="p-3 bg-white/10 rounded-xl border border-white/10">
           <Text size="xxxSmall" className="italic">
-            "We only send high-value alerts about matches and your predictions."
+            "{t('common.notif_value_statement')}"
           </Text>
         </Box>
       </Box>

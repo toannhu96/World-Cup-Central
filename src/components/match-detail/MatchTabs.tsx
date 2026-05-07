@@ -1,16 +1,19 @@
 import React from "react";
 import { Box, Text } from "zmp-ui";
+import { useTranslation } from "react-i18next";
 
 interface MatchTabsProps {
   activeTab: string;
+  onSelectDate?: (date: string) => void;
   onTabChange: (tab: string) => void;
 }
 
 export const MatchTabs: React.FC<MatchTabsProps> = ({ activeTab, onTabChange }) => {
+  const { t } = useTranslation();
   const tabs = [
-    { id: "events", label: "Events" },
-    { id: "stats", label: "Stats" },
-    { id: "lineups", label: "Lineups" },
+    { id: "events", label: t('common.tab_events') },
+    { id: "stats", label: t('common.tab_stats') },
+    { id: "lineups", label: t('common.tab_lineups') },
   ];
 
   return (

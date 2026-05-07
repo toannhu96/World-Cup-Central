@@ -3,9 +3,11 @@ import { Box, Text, Icon, Button } from "zmp-ui";
 import { useColors } from "@/hooks/useColors";
 import { useTrivia } from "@/hooks/useTrivia";
 import { trackEvent } from "../utils/analytics";
+import { useTranslation } from "react-i18next";
 
 export function TriviaCard() {
   const colors = useColors();
+  const { t } = useTranslation();
   const {
     todayQuestion,
     hasAnsweredToday,
@@ -51,23 +53,23 @@ export function TriviaCard() {
         <Box className="flex flex-row items-center gap-3">
           <Text className="text-2xl">🧠</Text>
           <Box>
-            <Text className="font-bold text-yellow-500">Daily Trivia</Text>
-            <Text size="xxxSmall" className="text-white/60">New question every day</Text>
+            <Text className="font-bold text-yellow-500">{t('common.daily_trivia')}</Text>
+            <Text size="xxxSmall" className="text-white/60">{t('common.new_question_daily')}</Text>
           </Box>
         </Box>
         <Box className="text-right">
           <Text className="font-bold text-yellow-500">{streakEmoji} {streak}</Text>
-          <Text size="xxxSmall" className="text-white/60">day streak</Text>
+          <Text size="xxxSmall" className="text-white/60">{t('common.day_streak')}</Text>
         </Box>
       </Box>
 
       {/* Stats row */}
       {totalAnswered > 0 && (
         <Box flex className="border-b border-gray-50 py-2">
-          <StatMini label="Answered" value={String(totalAnswered)} />
-          <StatMini label="Correct" value={String(totalCorrect)} />
+          <StatMini label={t('common.answered')} value={String(totalAnswered)} />
+          <StatMini label={t('common.correct')} value={String(totalCorrect)} />
           <StatMini
-            label="Accuracy"
+            label={t('common.accuracy')}
             value={`${totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0}%`}
           />
         </Box>
@@ -106,7 +108,7 @@ export function TriviaCard() {
       {showFact && (
         <Box className={`mx-4 mb-4 p-3 border rounded-xl flex flex-col gap-1 ${isCorrect ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"}`}>
           <Text className={`font-bold text-sm ${isCorrect ? "text-green-600" : "text-red-600"}`}>
-            {isCorrect ? "🎉 Correct! +1 streak" : "😅 Not quite!"}
+            {isCorrect ? t('common.trivia_correct') : t('common.trivia_incorrect')}
           </Text>
           <Text size="xxxSmall" className="text-gray-500 leading-normal italic">
             {todayQuestion.funFact}
@@ -116,13 +118,13 @@ export function TriviaCard() {
 
       {hasAnsweredToday && !showFact && (
         <Box onClick={() => setShowFact(true)} className="py-2 text-center">
-          <Text size="small" className="text-blue-600 font-semibold cursor-pointer">Show fun fact ›</Text>
+          <Text size="small" className="text-blue-600 font-semibold cursor-pointer">{t('common.show_fun_fact')}</Text>
         </Box>
       )}
 
       {answered && (
         <Text size="xxxSmall" className="text-center pb-3 text-gray-400">
-          Next question tomorrow
+          {t('common.next_question_tomorrow')}
         </Text>
       )}
     </Box>

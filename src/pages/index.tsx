@@ -17,14 +17,27 @@ import { TeamPicker } from "../components/TeamPicker";
 import { Leaderboard } from "../components/Leaderboard";
 import heroBanner from "../static/images/hero_banner.png";
 import appIcon from "../static/images/icon.png";
+import { useTranslation } from "react-i18next";
 
 const FILTERS = ["All", "Group Stage", "Knockout", "Favorites", "Calendar", "Leaderboard", "Settings"] as const;
 type Filter = typeof FILTERS[number];
 
 const HomePage: React.FC = () => {
+  const { t } = useTranslation();
   const { matches, isLoading, isError, refetch } = useMatches();
   const { favoriteTeams, toggleFavoriteTeam } = useApp();
   const [filter, setFilter] = useState<Filter>("All");
+  
+  const FILTER_KEYS: Record<Filter, string> = {
+    "All": "filter_all",
+    "Group Stage": "filter_group_stage",
+    "Knockout": "filter_knockout",
+    "Favorites": "filter_favorites",
+    "Calendar": "filter_calendar",
+    "Leaderboard": "filter_leaderboard",
+    "Settings": "filter_settings"
+  };
+
   const [selectedGroup, setSelectedGroup] = useState("All");
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>("all");
   const [selectedDate, setSelectedDate] = useState("");
@@ -108,6 +121,16 @@ const HomePage: React.FC = () => {
   };
 
 
+  const ROUND_KEYS: Record<string, string> = {
+    "Group Stage": "round_group_stage",
+    "Round of 32": "round_of_32",
+    "Round of 16": "round_of_16",
+    "Quarterfinal": "round_quarterfinal",
+    "Semifinal": "round_semifinal",
+    "Third Place": "round_third_place",
+    "Final": "round_final"
+  };
+
   if (showTeamPicker) {
       return (
           <Page className="bg-gray-50">
@@ -151,10 +174,10 @@ const HomePage: React.FC = () => {
           <Text size="small" className="text-white/80 mb-6 font-medium tracking-wide">🇺🇸 USA · 🇨🇦 Canada · 🇲🇽 Mexico</Text>
           
           <Box flex justifyContent="space-between" className="glass-morphism-dark p-4 rounded-3xl border border-white/20">
-            <Stat label="Teams" value="48" />
-            <Stat label="Matches" value="104" />
-            <Stat label="Venues" value="16" />
-            <Stat label="Your Pts" value={totalPoints.toLocaleString()} highlight />
+            <Stat label={t('common.stat_teams')} value="48" />
+            <Stat label={t('common.stat_matches')} value="104" />
+            <Stat label={t('common.stat_venues')} value="16" />
+            <Stat label={t('common.stat_your_pts')} value={totalPoints.toLocaleString()} highlight />
           </Box>
         </Box>
       </Box>
@@ -172,7 +195,7 @@ const HomePage: React.FC = () => {
                   : "glass-morphism text-gray-500 border-white/20"
               }`}
             >
-              <Text size="small" className="font-bold tracking-wide">{f}</Text>
+              <Text size="small" className="font-bold tracking-wide">{t(`common.${FILTER_KEYS[f]}`)}</Text>
             </Box>
           ))}
         </Box>
@@ -193,8 +216,8 @@ const HomePage: React.FC = () => {
 
       {filter === "Favorites" && favoriteTeams.length > 0 && (
           <Box className="px-6 mb-4 flex justify-between items-center">
-              <Text size="small" className="font-black text-gray-400 uppercase tracking-widest">Your Teams</Text>
-              <Button size="small" variant="tertiary" onClick={() => setShowTeamPicker(true)} className="text-blue-600 font-bold">Edit</Button>
+              <Text size="small" className="font-black text-gray-400 uppercase tracking-widest">{t('common.your_teams')}</Text>
+              <Button size="small" variant="tertiary" onClick={() => setShowTeamPicker(true)} className="text-blue-600 font-bold">{t('common.edit')}</Button>
           </Box>
       )}
 
@@ -206,14 +229,14 @@ const HomePage: React.FC = () => {
           <SettingsPage />
         ) : isLoading ? (
           <Box flex justifyContent="center" className="py-10">
-            <Text className="text-gray-400">Loading matches...</Text>
+            <Text className="text-gray-400">{t('common.loading_matches')}</Text>
           </Box>
         ) : isError ? (
           <Box flex flexDirection="column" alignItems="center" className="py-20 px-10 text-center">
             <Icon icon="zi-warning" size={48} className="text-red-500 mb-4" />
-            <Text className="text-gray-600 mb-1 font-bold">Failed to load matches</Text>
-            <Text size="small" className="text-gray-400 mb-4">Please check your connection and try again</Text>
-            <Button onClick={refetch} size="small" variant="secondary">Retry</Button>
+            <Text className="text-gray-600 mb-1 font-bold">{t('common.failed_load_matches')}</Text>
+            <Text size="small" className="text-gray-400 mb-4">{t('common.check_connection_hint')}</Text>
+            <Button onClick={refetch} size="small" variant="secondary">{t('common.retry')}</Button>
           </Box>
         ) : finalMatches.length === 0 ? (
           filter === "Favorites" && favoriteTeams.length === 0 ? (
@@ -221,23 +244,23 @@ const HomePage: React.FC = () => {
                 <Box className="w-24 h-24 glass-morphism rounded-full flex items-center justify-center mb-8 shadow-xl">
                   <Icon icon="zi-star" size={48} className="text-yellow-400" />
                 </Box>
-                <Text size="large" className="font-black mb-2 text-gray-800">No Favorite Teams</Text>
-                <Text size="small" className="text-gray-500 mb-10 font-medium">Select the teams you follow to see their match schedule here.</Text>
-                <Button onClick={() => setShowTeamPicker(true)} className="bg-blue-600 rounded-2xl h-14 px-10 font-black uppercase tracking-widest shadow-2xl">Pick My Teams</Button>
+                <Text size="large" className="font-black mb-2 text-gray-800">{t('common.no_favorite_teams')}</Text>
+                <Text size="small" className="text-gray-500 mb-10 font-medium">{t('common.no_favorite_teams_desc')}</Text>
+                <Button onClick={() => setShowTeamPicker(true)} className="bg-blue-600 rounded-2xl h-14 px-10 font-black uppercase tracking-widest shadow-2xl">{t('common.pick_my_teams')}</Button>
             </Box>
           ) : (
             <Box flex flexDirection="column" alignItems="center" className="py-20 px-10 text-center">
               <Icon icon="zi-star" size={48} className="text-gray-200 mb-4" />
-              <Text className="text-gray-600 mb-1 font-bold">No matches found</Text>
-              <Text size="small" className="text-gray-400">Try changing your filter or add some favorites</Text>
+              <Text className="text-gray-600 mb-1 font-bold">{t('common.no_matches_found')}</Text>
+              <Text size="small" className="text-gray-400">{t('common.no_matches_found_desc')}</Text>
             </Box>
           )
         ) : (
           sections.map(({ round, matches }) => (
             <Box key={round} className="mb-4">
               <SectionHeader
-                title={round}
-                subtitle={`${matches.length} match${matches.length > 1 ? "es" : ""}`}
+                title={t(`common.${ROUND_KEYS[round]}`)}
+                subtitle={t('common.match_count', { count: matches.length })}
               />
               {matches.map((m) => (
                 <MatchCard key={m.id} match={m} />

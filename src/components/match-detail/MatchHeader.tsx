@@ -2,15 +2,23 @@ import React from "react";
 import { Box, Text, Icon, Button } from "zmp-ui";
 import { useNavigate } from "react-router-dom";
 import { Match, TEAMS } from "@/constants/worldcup2026";
-
-interface MatchHeaderProps {
-  match: Match;
-}
+import { useTranslation } from "react-i18next";
 
 export const MatchHeader: React.FC<MatchHeaderProps> = ({ match }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const homeTeam = TEAMS[match.homeTeam];
   const awayTeam = TEAMS[match.awayTeam];
+
+  const ROUND_KEYS: Record<string, string> = {
+    "Group Stage": "round_group_stage",
+    "Round of 32": "round_of_32",
+    "Round of 16": "round_of_16",
+    "Quarterfinal": "round_quarterfinal",
+    "Semifinal": "round_semifinal",
+    "Third Place": "round_third_place",
+    "Final": "round_final"
+  };
 
   const headerStyle = {
     background: `linear-gradient(135deg, ${homeTeam?.color || "#001f3f"} 0%, ${awayTeam?.color || "#001f3f"} 100%)`,
@@ -28,14 +36,14 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({ match }) => {
           onClick={() => navigate(-1)}
           className="bg-white/20 border-none text-white backdrop-blur-md rounded-full"
         >
-          Back
+          {t('common.back')}
         </Button>
       </Box>
 
       {/* Match Info */}
       <Box className="mt-6 px-6 text-center text-white">
         <Text size="xxxSmall" className="uppercase tracking-[0.3em] text-white/70 font-bold mb-2">
-          {match.round} · {match.city}
+          {t(`common.${ROUND_KEYS[match.round]}`)} · {match.city}
         </Text>
         
         <Box flex alignItems="center" justifyContent="center" className="gap-8 my-6">
@@ -70,7 +78,7 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({ match }) => {
 
         <Box className="inline-block px-4 py-1.5 bg-yellow-500/20 rounded-full border border-yellow-500/30 backdrop-blur-sm">
           <Text size="xxxSmall" className="text-yellow-500 font-black uppercase tracking-widest">
-            {match.status === "live" ? "Live Now" : match.status === "finished" ? "Match Finished" : match.date}
+            {match.status === "live" ? t('common.live_now') : match.status === "finished" ? t('common.match_finished') : match.date}
           </Text>
         </Box>
       </Box>

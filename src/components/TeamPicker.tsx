@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, Icon, Button, Input } from "zmp-ui";
 import { TEAMS, Team } from "@/constants/worldcup2026";
+import { useTranslation } from "react-i18next";
 
 interface TeamPickerProps {
   selectedTeams: string[];
@@ -10,6 +11,7 @@ interface TeamPickerProps {
 
 export const TeamPicker: React.FC<TeamPickerProps> = ({ selectedTeams, onToggleTeam, onDone }) => {
   const [search, setSearch] = useState("");
+  const { t } = useTranslation();
   const allTeams = Object.values(TEAMS);
   
   const filteredTeams = allTeams.filter(t => 
@@ -22,9 +24,9 @@ export const TeamPicker: React.FC<TeamPickerProps> = ({ selectedTeams, onToggleT
   return (
     <Box className="flex flex-col h-full">
       <Box className="p-4 glass-morphism border-none rounded-b-3xl shadow-lg">
-        <Text size="large" className="font-black mb-4 text-blue-600">Follow Your Teams</Text>
+        <Text size="large" className="font-black mb-4 text-blue-600">{t('common.follow_teams')}</Text>
         <Input
-          placeholder="Search teams..."
+          placeholder={t('common.search_teams')}
           prefix={<Icon icon="zi-search" />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -69,7 +71,7 @@ export const TeamPicker: React.FC<TeamPickerProps> = ({ selectedTeams, onToggleT
           onClick={onDone}
           className="bg-blue-600 rounded-2xl h-14 font-black tracking-widest uppercase shadow-xl"
         >
-          Follow {selectedTeams.length} {selectedTeams.length === 1 ? "Team" : "Teams"}
+          {t('common.follow_count', { count: selectedTeams.length })}
         </Button>
       </Box>
     </Box>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Text } from "zmp-ui";
+import { useTranslation } from "react-i18next";
 
 export type TimeFilterType = "all" | "upcoming" | "past";
 
@@ -10,10 +11,11 @@ interface TimeFilterProps {
 }
 
 export const TimeFilter: React.FC<TimeFilterProps> = ({ activeFilter, onChange, counts }) => {
+  const { t } = useTranslation();
   const filters: { id: TimeFilterType; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "upcoming", label: "Upcoming" },
-    { id: "past", label: "Past" },
+    { id: "all", label: t('common.time_filter_all') },
+    { id: "upcoming", label: t('common.time_filter_upcoming') },
+    { id: "past", label: t('common.time_filter_past') },
   ];
 
   return (

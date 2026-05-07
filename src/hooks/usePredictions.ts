@@ -28,11 +28,11 @@ export function scorePrediction(pred: Prediction, match: Match): PredictionResul
     match.homeScore === undefined ||
     match.awayScore === undefined
   ) {
-    return { points: 0, outcome: "pending", label: "Pending" };
+    return { points: 0, outcome: "pending", label: "common.outcome_pending" };
   }
 
   if (pred.homeScore === match.homeScore && pred.awayScore === match.awayScore) {
-    return { points: 3, outcome: "exact", label: "Exact! 🎯" };
+    return { points: 3, outcome: "exact", label: "common.outcome_exact" };
   }
 
   const predWinner =
@@ -45,10 +45,10 @@ export function scorePrediction(pred: Prediction, match: Match): PredictionResul
       : "draw";
 
   if (predWinner === actualWinner) {
-    return { points: 1, outcome: "correct", label: "Correct ✅" };
+    return { points: 1, outcome: "correct", label: "common.outcome_correct" };
   }
 
-  return { points: 0, outcome: "wrong", label: "Wrong ❌" };
+  return { points: 0, outcome: "wrong", label: "common.outcome_wrong" };
 }
 
 export function usePredictions() {
