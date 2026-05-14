@@ -1,17 +1,33 @@
 import React from "react";
-import { Box, Text, Icon, Switch, List, Spinner, Button } from "zmp-ui";
+import { Box, Text, Icon, Switch, Spinner, Button } from "zmp-ui";
 import { useNotificationSettings, NotificationSettings } from "../hooks/useNotificationSettings";
-import { useRecoilValue } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { userState } from "../state";
 import { useTranslation } from "react-i18next";
+import { getUserInfo } from "zmp-sdk";
+import { requestMatchNotifications } from "../api/zaloApi";
 
 export function SettingsPage() {
   const user = useRecoilValue(userState);
+  const setUser = useSetRecoilState(userState);
   const { settings, loading, updateSetting } = useNotificationSettings();
   const { t, i18n } = useTranslation();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
+  };
+
+  const handleSyncProfile = async () => {
+    try {
+      const { userInfo } = await getUserInfo({ autoRequestPermission: true });
+      setUser(userInfo);
+    } catch (error) {
+      console.error("Error syncing profile:", error);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    await requestMatchNotifications();
   };
 
   const settingItems: { key: keyof NotificationSettings; label: string; icon: string; description: string }[] = [
@@ -53,18 +69,34 @@ export function SettingsPage() {
     },
   ];
 
-  if (user?.id === "guest") {
-    return (
-      <Box className="m-4 p-10 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
-        <Icon icon="zi-user" size={48} className="text-gray-200 mb-4" />
-        <Text className="text-gray-600 font-bold mb-1">{t('common.guest_mode')}</Text>
-        <Text size="small" className="text-gray-400">{t('common.guest_mode_hint')}</Text>
-      </Box>
-    );
-  }
-
   return (
     <Box className="m-4 flex flex-col gap-4">
+      {user?.id === "guest" ? (
+        <Box className="p-6 text-center bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center">
+          <Icon icon="zi-user" size={48} className="text-gray-200 mb-4" />
+          <Text className="text-gray-600 font-bold mb-1">{t('common.guest_mode')}</Text>
+          <Text size="small" className="text-gray-400 mb-6">{t('common.guest_mode_hint')}</Text>
+          <Button
+            onClick={handleSyncProfile}
+            className="bg-blue-600 rounded-xl h-12 px-8 font-bold"
+          >
+            {t('common.sync_zalo_profile')}
+          </Button>
+        </Box>
+      ) : (
+        <Box flex alignItems="center" className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm gap-4">
+          <img
+            src={user.avatar || "https://stc-zaloprofile.zdn.vn/static/iphone/default_avatar.png"}
+            className="w-16 h-16 rounded-full border-2 border-blue-100"
+            alt="Avatar"
+          />
+          <Box>
+            <Text className="font-bold text-gray-800 text-lg">{user.name}</Text>
+            <Text size="xxxSmall" className="text-gray-400">ID: {user.id}</Text>
+          </Box>
+        </Box>
+      )}
+
       {/* Language Switcher */}
       <Box className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
         <Box flex alignItems="center" className="gap-3 mb-6">
@@ -145,6 +177,13 @@ export function SettingsPage() {
             "{t('common.notif_value_statement')}"
           </Text>
         </Box>
+        <Button
+          fullWidth
+          onClick={handleEnableNotifications}
+          className="mt-4 bg-blue-600 border-none h-12 rounded-xl font-bold"
+        >
+          {t('common.enable_match_alerts')}
+        </Button>
       </Box>
     </Box>
   );

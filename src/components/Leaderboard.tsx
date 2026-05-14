@@ -1,12 +1,26 @@
 import React from "react";
-import { Box, Text, Icon, Avatar, Spinner } from "zmp-ui";
+import { Box, Text, Icon, Avatar, Spinner, Button } from "zmp-ui";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { TriviaCard } from "./TriviaCard";
 import { useTranslation } from "react-i18next";
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { userState } from "../state";
+import { getUserInfo } from "zmp-sdk";
 
 export function Leaderboard() {
+  const user = useRecoilValue(userState);
+  const setUser = useSetRecoilState(userState);
   const { topUsers, currentUser, loading } = useLeaderboard();
   const { t } = useTranslation();
+
+  const handleSyncProfile = async () => {
+    try {
+      const { userInfo } = await getUserInfo({ autoRequestPermission: true });
+      setUser(userInfo);
+    } catch (error) {
+      console.error("Error syncing profile:", error);
+    }
+  };
 
   return (
     <Box className="pb-8">
@@ -81,6 +95,20 @@ export function Leaderboard() {
               <Text className="font-bold text-blue-600">{currentUser.total_points.toLocaleString()}</Text>
               <Text size="xxxSmall" className="text-gray-400 uppercase font-bold">{t('common.pts')}</Text>
             </Box>
+          </Box>
+        )}
+
+        {/* Profile connection prompt for guest users */}
+        {!loading && user.id === "guest" && (
+          <Box className="p-6 bg-blue-50/50 border-t border-gray-100 flex flex-col items-center text-center gap-3">
+            <Text size="small" className="text-gray-600 font-medium">{t('common.login_to_see_rank')}</Text>
+            <Button 
+              size="small"
+              onClick={handleSyncProfile}
+              className="bg-blue-600 rounded-xl px-6 font-bold"
+            >
+              {t('common.sync_zalo_profile')}
+            </Button>
           </Box>
         )}
         

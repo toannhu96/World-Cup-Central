@@ -4,7 +4,6 @@
     "follow_teams": "Theo dõi đội bóng",
     "live": "TRỰC TIẾP",
     "guest_mode": "Chế độ khách",
-    "notify_me": "Thông báo cho tôi",
     "settings": "Cài đặt",
     "language": "Ngôn ngữ",
     "vietnamese": "Tiếng Việt",
@@ -48,13 +47,11 @@
     "alert_goals_desc": "Thông báo thời gian thực khi có bàn thắng",
     "alert_group_stage_complete_label": "Cột mốc giải đấu",
     "alert_group_stage_complete_desc": "Thông báo khi kết thúc vòng bảng hoặc các vòng đấu",
-    "guest_mode_hint": "Vui lòng đăng nhập để quản lý cài đặt thông báo.",
+    "guest_mode_hint": "Kết nối hồ sơ Zalo để lưu điểm và hiển thị thứ hạng của bạn.",
     "zalo_notif_api": "Zalo Notification API",
-    "zalo_notif_hint": "Việc gửi thông báo thực tế phụ thuộc vào cài đặt quyền Zalo của bạn.",
+    "zalo_notif_hint": "Bật quyền thông báo khi bạn muốn nhận nhắc lịch, tỉ số và kết quả trận đấu.",
     "notif_value_statement": "Chúng tôi chỉ gửi các thông báo quan trọng về các trận đấu và dự đoán của bạn.",
-    "dont_miss_goal": "Đừng bỏ lỡ bàn thắng!",
-    "notif_popup_desc": "Nhận thông báo thời gian thực về thời gian thi đấu, tỉ số và kết quả cuối cùng của đội bóng yêu thích.",
-    "maybe_later": "Để sau",
+    "enable_match_alerts": "Bật thông báo trận đấu",
     "something_went_wrong": "Có lỗi xảy ra",
     "error_desc": "Ứng dụng gặp lỗi không mong muốn. Vui lòng tải lại để tiếp tục.",
     "try_again": "Thử lại",
@@ -141,6 +138,9 @@
     "pos_D": "HV",
     "pos_M": "TV",
     "pos_S": "TĐ",
-    "pos_F": "TĐ"
+    "pos_F": "TĐ",
+    "sync_zalo_profile": "Kết nối hồ sơ Zalo",
+    "login_to_see_rank": "Kết nối hồ sơ Zalo để lưu điểm và hiển thị thứ hạng của bạn.",
+    "sync_profile_to_save": "Kết nối hồ sơ Zalo để lưu điểm vào BXH"
   }
 }

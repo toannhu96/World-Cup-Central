@@ -3,6 +3,8 @@ import { Modal, Box, Text, Button, Icon } from "zmp-ui";
 import { Match, TEAMS } from "@/constants/worldcup2026";
 import { trackEvent } from "../utils/analytics";
 import { useTranslation } from "react-i18next";
+import { useRecoilValue } from "recoil";
+import { userState } from "../state";
 
 interface PredictModalProps {
   match: Match;
@@ -24,6 +26,7 @@ export function PredictModal({
   const [homeScore, setHomeScore] = useState(initialHome);
   const [awayScore, setAwayScore] = useState(initialAway);
   const { t } = useTranslation();
+  const user = useRecoilValue(userState);
 
   const homeTeam = TEAMS[match.homeTeam];
   const awayTeam = TEAMS[match.awayTeam];
@@ -97,6 +100,15 @@ export function PredictModal({
             </Box>
           </Box>
         </Box>
+
+        {user.id === "guest" && (
+          <Box className="mb-6 p-3 bg-blue-50 rounded-xl flex items-center gap-3">
+            <Icon icon="zi-info-circle-solid" className="text-blue-500" size={20} />
+            <Text size="xxxSmall" className="text-blue-700 font-medium">
+              {t('common.sync_profile_to_save')}
+            </Text>
+          </Box>
+        )}
 
         <Box flex className="gap-3 mt-6">
           <Button fullWidth variant="secondary" onClick={onClose}>

@@ -27,7 +27,10 @@ export function useNotificationSettings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id || user.id === "guest") return;
+    if (!user?.id || user.id === "guest") {
+      setLoading(false);
+      return;
+    }
 
     const fetchSettings = async () => {
       try {

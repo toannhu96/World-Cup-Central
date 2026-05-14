@@ -4,7 +4,6 @@
     "follow_teams": "Follow Your Teams",
     "live": "LIVE",
     "guest_mode": "Guest Mode",
-    "notify_me": "Notify Me",
     "settings": "Settings",
     "language": "Language",
     "vietnamese": "Vietnamese",
@@ -48,13 +47,11 @@
     "alert_goals_desc": "Real-time notifications for goals",
     "alert_group_stage_complete_label": "Tournament Milestones",
     "alert_group_stage_complete_desc": "Alert when group stages or rounds complete",
-    "guest_mode_hint": "Please log in to manage your notification settings.",
+    "guest_mode_hint": "Connect your Zalo profile to save points and show your rank.",
     "zalo_notif_api": "Zalo Notification API",
-    "zalo_notif_hint": "Actual delivery depends on your Zalo permission settings.",
+    "zalo_notif_hint": "Enable notifications when you want match reminders, scores, and results.",
     "notif_value_statement": "We only send high-value alerts about matches and your predictions.",
-    "dont_miss_goal": "Don't Miss a Goal!",
-    "notif_popup_desc": "Receive real-time alerts for match kick-offs, scores, and final results of your favorite teams.",
-    "maybe_later": "Maybe Later",
+    "enable_match_alerts": "Enable match alerts",
     "something_went_wrong": "Something went wrong",
     "error_desc": "The application encountered an unexpected error. Please reload to continue.",
     "try_again": "Try Again",
@@ -141,6 +138,9 @@
     "pos_D": "DF",
     "pos_M": "MF",
     "pos_S": "ST",
-    "pos_F": "FW"
+    "pos_F": "FW",
+    "sync_zalo_profile": "Connect Zalo Profile",
+    "login_to_see_rank": "Connect your Zalo profile to save points and show your rank.",
+    "sync_profile_to_save": "Connect your Zalo profile to save points to Leaderboard"
   }
 }

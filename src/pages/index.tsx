@@ -6,7 +6,6 @@ import { MatchCard } from "../components/MatchCard";
 import { SectionHeader } from "../components/SectionHeader";
 import { ROUNDS_ORDER, Match } from "../constants/worldcup2026";
 import { useApp } from "../context/AppContext";
-import { NotificationPopup } from "../components/NotificationPopup";
 import { useLeaderboard } from "../hooks/useLeaderboard";
 import { SettingsPage } from "../components/SettingsPage";
 import { trackPageView } from "../utils/analytics";
@@ -270,7 +269,6 @@ const HomePage: React.FC = () => {
         )}
       </Box>
 
-      <NotificationPopup />
     </Page>
   );
 };
