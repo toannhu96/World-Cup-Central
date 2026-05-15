@@ -1,5 +1,7 @@
 {
   "common": {
+    "app_title": "WC News",
+    "hero_subtitle": "Nhịp Đập Sân Cỏ",
     "leaderboard": "Leaderboard",
     "follow_teams": "Follow Your Teams",
     "live": "LIVE",

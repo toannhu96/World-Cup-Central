@@ -165,8 +165,8 @@ const HomePage: React.FC = () => {
               className="w-12 h-12 mr-3 drop-shadow-lg"
             />
             <Box>
-              <Text size="xSmall" className="uppercase tracking-[0.3em] text-yellow-400 font-black leading-none mb-1">FIFA World Cup</Text>
-              <Text size="xxxLarge" className="text-white leading-none font-black italic transform -skew-x-12">2026</Text>
+              <Text size="xSmall" className="uppercase tracking-[0.3em] text-yellow-400 font-black leading-none mb-1">{t('common.app_title')}</Text>
+              <Text size="xxxLarge" className="text-white leading-none font-black italic transform -skew-x-12">{t('common.hero_subtitle')}</Text>
             </Box>
           </Box>
           
